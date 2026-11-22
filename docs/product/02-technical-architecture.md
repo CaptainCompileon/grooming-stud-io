@@ -21,7 +21,7 @@
 ```
 ┌─────────────────────────── Mobilný prehliadač ───────────────────────────┐
 │                                                                          │
-│  Landing → Súhlas (18+) → 3 fotky + 3 vstupy → Loading → Blueprint (4 karty)
+│  Landing → Súhlas 18+ → 3 fotky + 3 vstupy → Loading → Blueprint         │
 │                               │                               │          │
 │              resize ≤1024px, strip EXIF          html-to-image (PNG),    │
 │              (canvas, na klientovi)              clipboard copy          │

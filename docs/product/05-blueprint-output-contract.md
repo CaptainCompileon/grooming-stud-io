@@ -26,7 +26,7 @@ Neutrálne pozorovania, z ktorých vychádzajú všetky odporúčania: `face_sha
 | UI prvok | Pole |
 |---|---|
 | Nadpis strihu | `cut_name` + `cut_name_local` |
-| Tabuľka dĺžok | `top_length_mm`, `sides_length_mm`, `back_length_mm` (+ prepočet na číslo nástavca v UI: 3 mm ≈ #1, 6 mm ≈ #2, 9 mm ≈ #3, 12 mm ≈ #4 …) |
+| Tabuľka dĺžok | `top_length_mm`, `sides_length_mm`, `back_length_mm` (+ prepočet na číslo nástavca v UI: 3 mm ≈ #1, 6 mm ≈ #2, 10 mm ≈ #3, 13 mm ≈ #4 …; plná tabuľka v `knowledge-base/barber-terminology.md`) |
 | Prechod, krk, textúra | `transition`, `neckline`, `texture_finish` |
 | Kroky pre barbera | `instructions_for_barber[]` (číslovaný zoznam) |
 | Styling | `styling_product.type`, `styling_product.how_to_apply` |
@@ -96,7 +96,7 @@ Validuje sa **každá** odpoveď (napr. `ajv` alebo `zod`), lebo nie všetky imp
       "cut_name_local": "Krátky strih s textúrou hore a nízkym prechodom po bokoch",
       "top_length_mm": 40,
       "sides_length_mm": 6,
-      "back_length_mm": 9,
+      "back_length_mm": 10,
       "transition": "low_taper",
       "neckline": "natural_tapered",
       "texture_finish": "Point cut hore pre textúru, matný finish, ofina mierne dopredu",

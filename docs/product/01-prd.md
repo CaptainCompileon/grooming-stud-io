@@ -125,7 +125,7 @@ Zoradené podľa priority.
   - [ ] Chybová hláška hovorí, ktorú z 3 fotiek treba nahradiť, a ostatné vstupy zostanú vyplnené.
 
 **P0-5 Rozhodovacie jadro: Knowledge Base + VLM so štruktúrovaným výstupom**
-- 4 – 5 Markdown súborov s pravidlami (face-shapes, color-contrast, body-proportions, grooming-basics, hair-terminology) injektovaných ako systémový kontext.
+- 4 – 5 Markdown súborov s pravidlami (face-shapes, color-contrast, body-proportions, grooming-basics, barber-terminology) injektovaných ako systémový kontext.
 - Výstup je vynútený JSON Schemou (viď [Output kontrakt](./05-blueprint-output-contract.md)) – žiadny voľný text mimo definovaných polí.
 - *Akceptačné kritériá:*
   - [ ] 100 % odpovedí prejde validáciou schémy; nevalidná odpoveď sa raz automaticky zopakuje, potom chybový stav.

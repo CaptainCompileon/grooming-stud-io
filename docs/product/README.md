@@ -11,6 +11,13 @@ Mobilná webová appka: 3 fotky + 3 vstupy → **Blueprint** zo 4 kariet (Barber
 | 3 | [Implementačný plán](./03-implementation-plan.md) | 4 fázy / 4 týždne, úlohy, brány kvality, riziká |
 | 4 | [Beta & metriky](./04-beta-validation-plan.md) | Hypotézy, nábor, dotazník D+7, rozhodovacie pravidlá Go / Iterate / Kill |
 | 5 | [Output kontrakt](./05-blueprint-output-contract.md) + [`blueprint.schema.json`](./blueprint.schema.json) | JSON Schema výstupu modelu a mapovanie polí na UI karty |
+| 6 | [Backlog – Týždeň 1](./06-week1-backlog.md) | 16 ticketov s odhadmi, závislosťami a akceptačnými kritériami |
+
+**Rozhodovacie jadro (mimo `docs/`):**
+- [`knowledge-base/`](../../knowledge-base/README.md) – 5 súborov s pravidlami s ID (tvár, terminológia barbera, farby, postava, grooming), v angličtine, lebo ich číta model
+- [`prompts/system.md`](../../prompts/system.md) – systémový prompt v0.1
+
+🇬🇧 [English translation](./en/README.md)
 
 ## Metriky úspechu MVP (skratka)
 
