@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grooming-studio.local/schemas/blueprint.v1.json",
+  "title": "BlueprintResponse",
+  "description": "Structured output of /api/analyze. The model may return only these fields; UI cards are rendered from them. Array lengths and the mm/hex checks are also enforced server-side by guardrails, because some structured-output implementations ignore minItems/maxItems/pattern.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "status", "photo_issues", "blueprint"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "status": {
+      "type": "string",
+      "enum": ["ok", "photo_issue"],
+      "description": "photo_issue => blueprint must be null and photo_issues non-empty."
+    },
+    "photo_issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["photo", "problem", "fix_instruction"],
+        "properties": {
+          "photo": { "type": "string", "enum": ["front", "profile", "full_body"] },
+          "problem": {
+            "type": "string",
+            "enum": ["no_person", "multiple_people", "too_dark", "blurry", "cropped", "wrong_angle", "face_obstructed", "other"]
+          },
+          "fix_instruction": { "type": "string", "description": "Concrete, friendly instruction in the user's locale." }
+        }
+      }
+    },
+    "blueprint": {
+      "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/blueprint" }]
+    }
+  },
+  "$defs": {
+    "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+    "observations": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Neutral, non-evaluative observations. Never attractiveness judgements.",
+      "required": ["face_shape", "face_shape_confidence", "contrast_level", "undertone", "color_confidence", "body_frame", "body_confidence", "hair_notes"],
+      "properties": {
+        "face_shape": { "type": "string", "enum": ["oval", "round", "square", "oblong", "heart", "diamond", "triangle"] },
+        "face_shape_confidence": { "$ref": "#/$defs/confidence" },
+        "contrast_level": { "type": "string", "enum": ["low", "medium", "high"] },
+        "undertone": { "type": "string", "enum": ["warm", "cool", "neutral", "uncertain"] },
+        "color_confidence": { "$ref": "#/$defs/confidence" },
+        "body_frame": {
+          "type": "string",
+          "enum": ["inverted_triangle", "rectangle", "triangle", "oval", "trapezoid"],
+          "description": "Shoulder-to-waist relationship."
+        },
+        "body_confidence": { "$ref": "#/$defs/confidence" },
+        "hair_notes": { "type": "string", "description": "Density, hairline, texture as observed – neutral wording." }
+      }
+    },
+    "barber_cheat_sheet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cut_name", "cut_name_local", "top_length_mm", "sides_length_mm", "back_length_mm", "transition", "neckline", "texture_finish", "styling_product", "instructions_for_barber", "beard", "why"],
+      "properties": {
+        "cut_name": { "type": "string", "description": "Professional English term, e.g. 'Textured crop with low taper'." },
+        "cut_name_local": { "type": "string", "description": "Short explanation in the user's locale." },
+        "top_length_mm": { "type": "integer", "minimum": 0, "maximum": 200 },
+        "sides_length_mm": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "back_length_mm": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "transition": { "type": "string", "enum": ["low_taper", "mid_taper", "high_taper", "low_fade", "mid_fade", "high_fade", "scissor_over_comb", "none"] },
+        "neckline": { "type": "string", "enum": ["natural_tapered", "rounded", "squared", "blocked"] },
+        "texture_finish": { "type": "string", "description": "e.g. 'point cut on top for texture, matte finish'." },
+        "styling_product": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "how_to_apply"],
+          "properties": {
+            "type": { "type": "string", "enum": ["matte_clay", "paste", "pomade", "sea_salt_spray", "cream", "none"] },
+            "how_to_apply": { "type": "string" }
+          }
+        },
+        "instructions_for_barber": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 5,
+          "items": { "type": "string" },
+          "description": "Numbered steps the user shows to the barber verbatim."
+        },
+        "beard": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["style", "length_mm", "note"],
+              "properties": {
+                "style": { "type": "string" },
+                "length_mm": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "note": { "type": "string" }
+              }
+            }
+          ]
+        },
+        "why": { "type": "string", "description": "Must reference an observed feature (e.g. face shape) and the rule applied." }
+      }
+    },
+    "color": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "hex", "where_to_wear"],
+      "properties": {
+        "name": { "type": "string" },
+        "hex": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "where_to_wear": { "type": "string", "enum": ["top_near_face", "outerwear", "bottoms", "accent", "any"] }
+      }
+    },
+    "clothing_cut": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item", "fit", "shopping_tip", "why"],
+      "properties": {
+        "item": { "type": "string", "description": "e.g. 'Chinos', 'Oxford shirt', 'Crew-neck tee'." },
+        "fit": { "type": "string", "description": "e.g. 'slim-straight, slight taper, no break'." },
+        "shopping_tip": { "type": "string", "description": "What to check in the fitting room." },
+        "why": { "type": "string" }
+      }
+    },
+    "avoid_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["what", "why"],
+      "properties": {
+        "what": { "type": "string" },
+        "why": { "type": "string" }
+      }
+    },
+    "routine_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step", "when", "product_type", "why"],
+      "properties": {
+        "step": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "when": { "type": "string", "enum": ["morning", "evening", "morning_and_evening"] },
+        "product_type": { "type": "string", "description": "Generic product type, never a brand, e.g. 'gentle gel cleanser'." },
+        "why": { "type": "string" }
+      }
+    },
+    "blueprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observations", "card_barber", "card_style", "card_grooming", "card_why"],
+      "properties": {
+        "observations": { "$ref": "#/$defs/observations" },
+        "card_barber": { "$ref": "#/$defs/barber_cheat_sheet" },
+        "card_style": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["palette", "palette_why", "key_cuts", "avoid"],
+          "properties": {
+            "palette": { "type": "array", "minItems": 6, "maxItems": 6, "items": { "$ref": "#/$defs/color" } },
+            "palette_why": { "type": "string" },
+            "key_cuts": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "$ref": "#/$defs/clothing_cut" } },
+            "avoid": { "type": "array", "minItems": 2, "maxItems": 3, "items": { "$ref": "#/$defs/avoid_item" } }
+          }
+        },
+        "card_grooming": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["routine", "targeted_tip"],
+          "properties": {
+            "routine": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "$ref": "#/$defs/routine_step" } },
+            "targeted_tip": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["area", "tip", "why"],
+              "properties": {
+                "area": { "type": "string", "enum": ["eyebrows", "under_eyes", "beard_line", "skin_texture", "none"] },
+                "tip": { "type": "string" },
+                "why": { "type": "string" }
+              }
+            }
+          }
+        },
+        "card_why": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["summary", "proportion_points", "uncertainties"],
+          "properties": {
+            "summary": { "type": "string", "description": "2–3 sentences, neutral, explains the logic of all recommendations." },
+            "proportion_points": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 4,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["observation", "implication"],
+                "properties": {
+                  "observation": { "type": "string" },
+                  "implication": { "type": "string" }
+                }
+              }
+            },
+            "uncertainties": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "What the model could not judge reliably from the photos (empty if none)."
+            }
+          }
+        }
+      }
+    }
+  }
+}
