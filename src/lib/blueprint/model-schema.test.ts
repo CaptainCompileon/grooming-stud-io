@@ -35,4 +35,33 @@ describe("toModelSchema", () => {
     });
     expect(out).toEqual({ a: { description: "d", const: 1, anyOf: [{ $ref: "#/$defs/z" }] } });
   });
+
+  it("keeps properties and $defs entries whose names match a stripped keyword", () => {
+    const out = toModelSchema({
+      type: "object",
+      required: ["pattern", "minimum"],
+      properties: {
+        pattern: { type: "string", pattern: "^[a-z]+$", maxLength: 9 },
+        minimum: { type: "integer", minimum: 0 },
+        nested: {
+          type: "object",
+          properties: { maxItems: { type: "array", maxItems: 3, items: { type: "string" } } },
+        },
+      },
+      $defs: { minLength: { type: "string", minLength: 1 } },
+    });
+    expect(out).toEqual({
+      type: "object",
+      required: ["pattern", "minimum"],
+      properties: {
+        pattern: { type: "string" },
+        minimum: { type: "integer" },
+        nested: {
+          type: "object",
+          properties: { maxItems: { type: "array", items: { type: "string" } } },
+        },
+      },
+      $defs: { minLength: { type: "string" } },
+    });
+  });
 });
