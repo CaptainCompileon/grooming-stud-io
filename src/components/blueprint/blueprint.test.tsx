@@ -82,6 +82,20 @@ describe("BlueprintView", () => {
     expect(eventCalls("blueprint_rendered")).toHaveLength(1);
   });
 
+  it("renders key cuts and avoid items with repeated names without duplicate-key warnings", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const blueprint = okBlueprint();
+    const { key_cuts, avoid } = blueprint.card_style;
+    key_cuts[1] = { ...key_cuts[1], item: key_cuts[0].item };
+    blueprint.card_style.avoid = [avoid[0], { ...avoid[0], why: "Iný dôvod." }];
+    render(<BlueprintView blueprint={blueprint} />);
+    expect(screen.getAllByText(key_cuts[0].item)).toHaveLength(2);
+    expect(screen.getAllByText(avoid[0].what)).toHaveLength(2);
+    const keyWarnings = consoleError.mock.calls.filter((args) => String(args[0]).includes("same key"));
+    expect(keyWarnings).toEqual([]);
+    consoleError.mockRestore();
+  });
+
   it("shows each swatch's hex as its background, name and where-to-wear label", () => {
     render(<BlueprintView blueprint={okBlueprint()} />);
     const first = screen.getAllByTestId("swatch")[0];

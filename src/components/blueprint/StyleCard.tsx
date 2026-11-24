@@ -53,8 +53,8 @@ export function StyleCard({ card, lowConfidenceNotes }: Props) {
       <div className="flex flex-col gap-3">
         <h3 className="font-semibold">{t.keyCutsLabel}</h3>
         <ol className="flex flex-col gap-3">
-          {card.key_cuts.map((cut) => (
-            <li key={cut.item} className="rounded-xl bg-canvas p-4">
+          {card.key_cuts.map((cut, i) => (
+            <li key={`${i}-${cut.item}`} className="rounded-xl bg-canvas p-4">
               <p className="font-semibold">{cut.item}</p>
               <dl className="mt-2 grid gap-2 text-sm leading-snug">
                 <Row label={t.fitLabel} value={cut.fit} />
@@ -70,8 +70,8 @@ export function StyleCard({ card, lowConfidenceNotes }: Props) {
         <div className="flex flex-col gap-2">
           <h3 className="font-semibold">{t.avoidLabel}</h3>
           <ul className="flex flex-col gap-2">
-            {card.avoid.map((item) => (
-              <li key={item.what} className="leading-snug">
+            {card.avoid.map((item, i) => (
+              <li key={`${i}-${item.what}`} className="leading-snug">
                 <span className="font-medium">{item.what}</span>
                 <span className="text-muted"> – {item.why}</span>
               </li>
