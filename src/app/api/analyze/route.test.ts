@@ -4,10 +4,26 @@ import type { ModelOutput, VisionModel } from "@/lib/analyze/model-client";
 
 const PHOTO = "/9j/" + "QUJD".repeat(50);
 let model: VisionModel;
+let factoryError: Error | null = null;
+let assemblyError: Error | null = null;
 
 vi.mock("@/lib/analyze/model-client", () => ({
-  getVisionModel: () => model,
+  getVisionModel: () => {
+    if (factoryError) throw factoryError;
+    return model;
+  },
 }));
+
+vi.mock("@/lib/prompt/assemble", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/prompt/assemble")>();
+  return {
+    ...actual,
+    buildUserContent: (...args: Parameters<typeof actual.buildUserContent>) => {
+      if (assemblyError) throw assemblyError;
+      return actual.buildUserContent(...args);
+    },
+  };
+});
 
 import { POST } from "./route";
 
@@ -43,7 +59,11 @@ beforeEach(() => {
     vi.spyOn(console, m).mockImplementation(() => {}),
   );
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  factoryError = null;
+  assemblyError = null;
+});
 
 describe("POST /api/analyze", () => {
   it("returns 200 with the blueprint and an x-request-id header", async () => {
@@ -118,5 +138,28 @@ describe("POST /api/analyze", () => {
     expect(logs).not.toContain("boom");
     expect(logs).toContain('"errorName":"Error"');
     expect(logs).toContain(res.headers.get("x-request-id")!);
+  });
+
+  it.each([
+    ["the model factory", () => (factoryError = new TypeError("no key /9j/AAAA " + PHOTO))],
+    ["prompt assembly", () => (assemblyError = new RangeError("bad prompt /9j/AAAA " + PHOTO))],
+  ])("returns 500 server_error and logs no photo data when %s throws", async (_label, arm) => {
+    model = modelReturning({ text: JSON.stringify(okFixture), stopReason: "end_turn" });
+    arm();
+    const res = await post(JSON.stringify(validBody()));
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({
+      error: "analysis_failed",
+      reason: "server_error",
+    });
+    const requestId = res.headers.get("x-request-id");
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/);
+    const logs = loggedText();
+    expect(logs).not.toContain("/9j/");
+    expect(logs).not.toContain("no key");
+    expect(logs).not.toContain("bad prompt");
+    const entry = JSON.parse(spies[1].mock.calls.at(-1)![0] as string);
+    expect(entry).toMatchObject({ route: "/api/analyze", requestId, status: 500 });
+    expect(entry.errorName).toMatch(/^(TypeError|RangeError)$/);
   });
 });

@@ -246,6 +246,8 @@ describe("analyze outcome", () => {
 
   it.each([
     ["502", () => jsonResponse(502, { error: "analysis_failed" })],
+    ["502 model_error", () => jsonResponse(502, { error: "analysis_failed", reason: "model_error" })],
+    ["500 server_error", () => jsonResponse(500, { error: "analysis_failed", reason: "server_error" })],
     ["malformed JSON", () => new Response("{not json", { status: 200 })],
     ["an unexpected shape", () => jsonResponse(200, { status: "weird" })],
   ])("%s shows the analysis-failed message with a retry button", async (_label, respond) => {

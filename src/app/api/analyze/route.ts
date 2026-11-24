@@ -6,6 +6,9 @@ import { logRequest } from "@/lib/server/log";
 export const maxDuration = 60;
 export const runtime = "nodejs";
 
+// Our own limit for self-hosted / local runs. On Vercel the platform rejects
+// bodies over 4.5 MB before this handler runs, with a non-JSON 413 that the
+// client maps to invalid_request (src/app/analyze/page.tsx).
 const MAX_BODY_BYTES = 6_000_000;
 const TOTAL_BUDGET_MS = 55_000;
 
@@ -64,9 +67,19 @@ export async function POST(request: Request): Promise<Response> {
       reason: parsed.error,
     });
 
-  const result = await analyzePhotos(parsed.value, getVisionModel(), {
-    deadlineMs: TOTAL_BUDGET_MS - (Date.now() - startedAt),
-  });
+  let result;
+  try {
+    result = await analyzePhotos(parsed.value, getVisionModel(), {
+      deadlineMs: TOTAL_BUDGET_MS - (Date.now() - startedAt),
+    });
+  } catch (err) {
+    // A bug on our side (model factory, prompt assembly): log only the error
+    // class, since the message may echo request content.
+    return respond({ error: "analysis_failed", reason: "server_error" }, 500, {
+      reason: "server_error",
+      errorName: nameOf(err),
+    });
+  }
   if (result.ok)
     return respond(result.response, 200, { attempts: result.attempts });
   return respond({ error: "analysis_failed", reason: result.reason }, 502, {
