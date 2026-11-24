@@ -20,7 +20,7 @@ export type AnalyzeResult =
 type AttemptOutcome =
   | { kind: "ok"; response: BlueprintResponse }
   | { kind: "refusal" }
-  | { kind: "model_error"; errorName: string }
+  | { kind: "model_error"; errorName: string; retryable: boolean }
   | { kind: "invalid"; violations: string[] };
 
 const OUTPUT_SCHEMA = toModelSchema(schema as Record<string, unknown>);
@@ -43,6 +43,14 @@ function describeError(err: unknown): string {
   return typeof status === "number" ? `${name}:${status}` : name;
 }
 
+// A 4xx means the API rejected this exact request (bad image, auth, size):
+// resending it fails the same way. 408/409/429 are transient and worth a retry.
+function isRetryable(err: unknown): boolean {
+  const status = (err as { status?: unknown } | null)?.status;
+  if (typeof status !== "number" || status < 400 || status > 499) return true;
+  return status === 408 || status === 409 || status === 429;
+}
+
 // Violation strings never include request content (photos).
 async function attempt(
   req: AnalyzeRequest,
@@ -61,7 +69,11 @@ async function attempt(
   try {
     output = await model.generate(input);
   } catch (err) {
-    return { kind: "model_error", errorName: describeError(err) };
+    return {
+      kind: "model_error",
+      errorName: describeError(err),
+      retryable: isRetryable(err),
+    };
   }
 
   if (output.stopReason === "refusal") return { kind: "refusal" };
@@ -103,7 +115,8 @@ export async function analyzePhotos(
     return { ok: false, reason: "refusal", attempts: 1 };
 
   const remaining = deadline - now();
-  if (remaining < MIN_RETRY_BUDGET_MS) {
+  const retryable = first.kind === "invalid" || first.retryable;
+  if (!retryable || remaining < MIN_RETRY_BUDGET_MS) {
     return first.kind === "model_error"
       ? {
           ok: false,
@@ -127,12 +140,21 @@ export async function analyzePhotos(
     case "refusal":
       return { ok: false, reason: "refusal", attempts: 2 };
     case "model_error":
-      return {
-        ok: false,
-        reason: "model_error",
-        attempts: 2,
-        errorName: second.errorName,
-      };
+      // The model did answer once: report that broken answer, not just the retry's error.
+      return first.kind === "invalid"
+        ? {
+            ok: false,
+            reason: "invalid_output",
+            attempts: 2,
+            violations: first.violations,
+            errorName: second.errorName,
+          }
+        : {
+            ok: false,
+            reason: "model_error",
+            attempts: 2,
+            errorName: second.errorName,
+          };
     case "invalid":
       return {
         ok: false,

@@ -147,6 +147,50 @@ describe("analyzePhotos", () => {
     expect(JSON.stringify(result)).not.toContain("secret");
   });
 
+  describe("client errors (4xx)", () => {
+    class ApiError extends Error {
+      constructor(readonly status: number) {
+        super(`status ${status}`);
+      }
+    }
+
+    it.each([400, 401, 403, 404, 413, 422])(
+      "does not retry when the first attempt fails with status %i",
+      async (status) => {
+        const model = fakeModel([new ApiError(status), valid]);
+        const result = await analyzePhotos(req, model);
+        expect(result).toEqual({
+          ok: false,
+          reason: "model_error",
+          attempts: 1,
+          errorName: `ApiError:${status}`,
+        });
+        expect(model.calls).toHaveLength(1);
+      },
+    );
+
+    it.each([408, 409, 429, 500, 529])("retries when the first attempt fails with status %i", async (status) => {
+      const model = fakeModel([new ApiError(status), valid]);
+      const result = await analyzePhotos(req, model);
+      expect(result).toEqual({ ok: true, response: okFixture, attempts: 2 });
+      expect(model.calls).toHaveLength(2);
+    });
+  });
+
+  it("reports invalid_output with the first violations when the retry after an invalid output throws", async () => {
+    class APIConnectionTimeoutError extends Error {}
+    const model = fakeModel([invalid, new APIConnectionTimeoutError("timed out")]);
+    const result = await analyzePhotos(req, model);
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "invalid_output",
+      attempts: 2,
+      errorName: "APIConnectionTimeoutError",
+    });
+    expect(result.ok === false && result.violations?.[0]).toMatch(/^SCHEMA: /);
+    expect(model.calls).toHaveLength(2);
+  });
+
   it("treats a max_tokens stop with truncated text as a parse failure and retries", async () => {
     const truncated = JSON.stringify(okFixture).slice(0, 200);
     const model = fakeModel([
