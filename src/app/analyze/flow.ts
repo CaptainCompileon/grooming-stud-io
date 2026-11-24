@@ -14,12 +14,19 @@ export type Draft = {
 
 type Inputs = Draft["inputs"];
 
+/**
+ * Why a request failed: `invalid_request` = the server rejected the payload
+ * (400/413, the photos need changing), `analysis_failed` = the server or model
+ * failed, `network` = no usable response (offline, timeout, dropped body).
+ */
+export type ErrorKind = "invalid_request" | "analysis_failed" | "network";
+
 export type FlowState =
   | { step: "consent" }
   | { step: "form"; draft: Draft }
   | { step: "loading"; draft: Draft }
   | { step: "result"; draft: Draft; response: BlueprintResponse }
-  | { step: "error"; draft: Draft; message: string };
+  | { step: "error"; draft: Draft; kind: ErrorKind };
 
 export type InputChange = {
   [F in keyof Inputs]: { field: F; value: Inputs[F] };
@@ -33,8 +40,9 @@ export type FlowAction =
   | SetInputAction
   | { type: "SUBMIT" }
   | { type: "SUCCEEDED"; response: BlueprintResponse }
-  | { type: "FAILED"; message: string }
+  | { type: "FAILED"; kind: ErrorKind }
   | { type: "RETRY" }
+  | { type: "BACK_TO_FORM" }
   | { type: "REPLACE_PHOTOS" }
   | { type: "RESTART" };
 
@@ -116,10 +124,13 @@ export function flowReducer(state: FlowState, action: FlowAction): FlowState {
 
     case "FAILED":
       if (state.step !== "loading") return state;
-      return { step: "error", draft: state.draft, message: action.message };
+      return { step: "error", draft: state.draft, kind: action.kind };
 
     case "RETRY":
       return state.step === "error" ? { step: "loading", draft: state.draft } : state;
+
+    case "BACK_TO_FORM":
+      return state.step === "error" ? { step: "form", draft: state.draft } : state;
 
     case "REPLACE_PHOTOS": {
       if (state.step !== "result" || state.response.status !== "photo_issue") return state;

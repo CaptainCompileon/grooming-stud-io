@@ -21,6 +21,12 @@ export function PhotoSlot({ photoKey, value, onChange, prepare = prepareImage }:
   const t = sk.photo.slots[photoKey];
   const actionLabel = value ? sk.photo.replace : sk.photo.add;
 
+  function handleRemove() {
+    latestPick.current++; // a pick still being processed must not refill the slot
+    setStatus("idle");
+    onChange(null);
+  }
+
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow picking the same file again
@@ -87,7 +93,7 @@ export function PhotoSlot({ photoKey, value, onChange, prepare = prepareImage }:
         {value && (
           <button
             type="button"
-            onClick={() => onChange(null)}
+            onClick={handleRemove}
             className="min-h-11 rounded-xl px-4 text-muted hover:text-ink"
           >
             {sk.photo.remove}

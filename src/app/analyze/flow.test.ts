@@ -96,13 +96,13 @@ describe("flowReducer", () => {
     expect(flowReducer(state, { type: "SUCCEEDED", response: okResponse })).toBe(state);
   });
 
-  it("FAILED moves to error and keeps the whole draft", () => {
-    const next = flowReducer(loading, { type: "FAILED", message: "spojenie zlyhalo" });
-    expect(next).toEqual({ step: "error", draft: completeDraft, message: "spojenie zlyhalo" });
+  it("FAILED moves to error, keeps the whole draft and stores the failure kind", () => {
+    const next = flowReducer(loading, { type: "FAILED", kind: "network" });
+    expect(next).toEqual({ step: "error", draft: completeDraft, kind: "network" });
   });
 
   it("RETRY from error goes back to loading with the same draft", () => {
-    const error = flowReducer(loading, { type: "FAILED", message: "x" });
+    const error = flowReducer(loading, { type: "FAILED", kind: "analysis_failed" });
     const retried = flowReducer(error, { type: "RETRY" });
     expect(retried).toEqual({ step: "loading", draft: completeDraft });
     if (retried.step !== "loading") throw new Error("unreachable");
@@ -112,6 +112,23 @@ describe("flowReducer", () => {
   it("ignores RETRY outside error", () => {
     const state = formWith(completeDraft);
     expect(flowReducer(state, { type: "RETRY" })).toBe(state);
+  });
+
+  it("BACK_TO_FORM from error returns to the form with the same draft", () => {
+    const error = flowReducer(loading, { type: "FAILED", kind: "invalid_request" });
+    const next = flowReducer(error, { type: "BACK_TO_FORM" });
+    expect(next).toEqual(formWith(completeDraft));
+    if (next.step !== "form") throw new Error("unreachable");
+    expect(next.draft).toBe(completeDraft);
+  });
+
+  it.each<FlowState>([
+    { step: "consent" },
+    { step: "form", draft: completeDraft },
+    { step: "loading", draft: completeDraft },
+    { step: "result", draft: completeDraft, response: okResponse },
+  ])("ignores BACK_TO_FORM in the $step step", (state) => {
+    expect(flowReducer(state, { type: "BACK_TO_FORM" })).toBe(state);
   });
 
   it("REPLACE_PHOTOS after a photo_issue result clears only the named photos", () => {
@@ -132,7 +149,7 @@ describe("flowReducer", () => {
   });
 
   it("RESTART clears the draft and returns to an empty form", () => {
-    const error = flowReducer(loading, { type: "FAILED", message: "x" });
+    const error = flowReducer(loading, { type: "FAILED", kind: "analysis_failed" });
     expect(flowReducer(error, { type: "RESTART" })).toEqual(formWith(emptyDraft));
   });
 

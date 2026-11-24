@@ -9,6 +9,7 @@ export const sk = {
 
   common: {
     retry: "Skúsiť znova",
+    backToForm: "Upraviť fotky",
     restart: "Začať odznova",
     privacyLink: "Ako narábame s fotkami",
     backHome: "Späť na úvod",
@@ -17,7 +18,7 @@ export const sk = {
   landing: {
     title: "Grooming Studio",
     value:
-      "Z 3 fotiek ti pripravíme konkrétny plán: čo povedať barberovi, aké farby a strihy oblečenia ti sedia a jednoduchú starostlivosť o pleť.",
+      "Z 3 fotiek ti pripravíme konkrétny plán: čo povedať barberovi, aké farby a strihy oblečenia ti sedia a ako sa jednoducho starať o pleť.",
     stepsTitle: "Ako to funguje",
     steps: [
       "Odfoť 3 fotky – tvár spredu, z profilu a celú postavu.",
@@ -38,7 +39,7 @@ export const sk = {
       "Bez registrácie. Anonymne meriame len kroky v aplikácii, bez cookies a bez fotiek.",
       "Služba je určená len pre ľudí od 18 rokov.",
     ],
-    checkbox: "Mám 18+ a súhlasím",
+    checkbox: "Mám aspoň 18 rokov a súhlasím so spracovaním fotiek",
     confirm: "Pokračovať",
   },
 
@@ -47,7 +48,7 @@ export const sk = {
     add: "Odfotiť alebo vybrať",
     replace: "Vymeniť",
     remove: "Odstrániť",
-    processing: "Pripravujem fotku…",
+    processing: "Pripravujeme fotku…",
     decodeError:
       "Túto fotku sa nepodarilo načítať. Skús inú – napríklad JPG z galérie alebo novú fotku priamo z mobilu.",
     slots: {
@@ -62,7 +63,7 @@ export const sk = {
       profile: {
         title: "Profil (z boku)",
         tips: [
-          "Otoč sa bokom tak, aby bolo vidieť ucho, líniu brady a zátylok.",
+          "Otoč sa bokom tak, aby bolo vidieť ucho, líniu čeľuste a zátylok.",
           "Bez okuliarov, vlasy nechaj tak, ako ich bežne nosíš.",
         ],
         example: "Príklad: hlava a krk presne z boku.",
@@ -113,12 +114,12 @@ export const sk = {
   },
 
   loading: {
-    title: "Pripravujem tvoj Blueprint",
+    title: "Pripravujeme tvoj Blueprint",
     stages: [
-      "Kontrolujem fotky…",
-      "Analyzujem proporcie tváre…",
-      "Vyberám farby a strihy…",
-      "Skladám tvoj Blueprint…",
+      "Kontrolujeme fotky…",
+      "Analyzujeme proporcie tváre…",
+      "Vyberáme farby a strihy…",
+      "Skladáme tvoj Blueprint…",
     ],
     note: "Zvyčajne to trvá do minúty. Nechaj stránku otvorenú.",
   },
@@ -131,7 +132,7 @@ export const sk = {
   },
 
   photoIssue: {
-    title: "Jednu fotku treba vymeniť",
+    title: "Niektoré fotky treba vymeniť",
     intro: "Ostatné údaje ostávajú vyplnené.",
     replace: "Vymeniť fotky",
   },
@@ -145,6 +146,8 @@ export const sk = {
     barber: {
       title: "Barber Cheat Sheet",
       subtitle: "Ukáž to barberovi",
+      lengthsLabel: "Dĺžky",
+      lengthColumns: { part: "Časť", length: "Dĺžka", guard: "Nástavec" },
       lengths: { top: "Hore", sides: "Boky", back: "Zátylok" },
       transitionLabel: "Prechod",
       necklineLabel: "Línia na krku",
@@ -156,7 +159,10 @@ export const sk = {
       scissors: "nožnice",
       copy: "Kopírovať text",
       copied: "Skopírované",
+      copyError: "Text sa nepodarilo skopírovať. Označ ho a skopíruj ručne.",
       saveImage: "Uložiť ako obrázok",
+      saving: "Ukladáme…",
+      saveError: "Obrázok sa nepodarilo uložiť. Skús znova alebo si urob snímku obrazovky.",
       transitions: {
         low_taper: "Low taper (nízky prechod)",
         mid_taper: "Mid taper (stredný prechod)",
@@ -164,21 +170,21 @@ export const sk = {
         low_fade: "Low fade (nízky fade)",
         mid_fade: "Mid fade (stredný fade)",
         high_fade: "High fade (vysoký fade)",
-        scissor_over_comb: "Nožnicami cez hrebeň (scissor over comb)",
+        scissor_over_comb: "Scissor over comb (nožnicami cez hrebeň)",
         none: "Bez prechodu",
       },
       necklines: {
-        natural_tapered: "Prirodzene zúžená (natural taper)",
-        rounded: "Zaoblená",
-        squared: "Rovná hrana (squared)",
-        blocked: "Blokovaná rovná línia (blocked)",
+        natural_tapered: "Natural taper (prirodzene zúžená)",
+        rounded: "Rounded (zaoblené rohy)",
+        squared: "Squared (rovná hrana)",
+        blocked: "Blocked (rovná blokovaná línia)",
       },
       products: {
         matte_clay: "Matná hlina (matte clay)",
-        paste: "Pasta",
-        pomade: "Pomáda",
-        sea_salt_spray: "Sprej s morskou soľou",
-        cream: "Krém",
+        paste: "Pasta (paste)",
+        pomade: "Pomáda (pomade)",
+        sea_salt_spray: "Sprej s morskou soľou (sea salt spray)",
+        cream: "Stylingový krém (cream)",
         none: "Bez produktu",
       },
     },
@@ -222,7 +228,7 @@ export const sk = {
     },
     lowConfidence: {
       face: "Tvar tváre sme z fotky neurčili s istotou – strih je zvolený tak, aby fungoval univerzálne.",
-      color: "Pri tejto fotke si nie sme istí podtónom – paleta obsahuje bezpečné neutrály.",
+      color: "Pri tejto fotke si nie sme istí podtónom pleti – paleta obsahuje bezpečné neutrály.",
       body: "Postavu sme z fotky neurčili s istotou – strihy oblečenia sú zvolené univerzálnejšie.",
     },
   },
@@ -243,7 +249,7 @@ export const sk = {
     items: [
       {
         title: "Čo spracúvame",
-        text: "3 fotky, ktoré nahráš, a tvoju výšku, typ vlasov a preferovaný štýl. Fotky sa ešte v mobile zmenšia a odstránia sa z nich metadáta (vrátane polohy GPS).",
+        text: "3 fotky, ktoré nahráš, a tvoju výšku, typ vlasov a preferovaný štýl. Fotky sa ešte v tvojom zariadení zmenšia a odstránia sa z nich metadáta (vrátane polohy GPS).",
       },
       {
         title: "Kto ich spracuje",

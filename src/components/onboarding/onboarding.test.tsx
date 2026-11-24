@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AnalyzePage from "@/app/analyze/page";
 import { sk } from "@/i18n/sk";
+import okFixture from "@/lib/blueprint/__fixtures__/blueprint-ok.sk.json";
+import photoIssueFixture from "@/lib/blueprint/__fixtures__/photo-issue.sk.json";
 import { PhotoSlot } from "./PhotoSlot";
 
 // createImageBitmap and canvas do not exist in jsdom: the page's default
@@ -110,6 +112,24 @@ describe("PhotoSlot", () => {
     expect(onChange).toHaveBeenCalledWith(null);
   });
 
+  it("remove also clears a decode error shown for a failed replacement", async () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <PhotoSlot
+        photoKey="front"
+        value="/9j/old"
+        onChange={onChange}
+        prepare={() => Promise.reject(new Error("image_decode_failed"))}
+      />,
+    );
+    fireEvent.change(fileInputs(container)[0], { target: { files: [jpeg("broken.jpg")] } });
+    expect(await screen.findByText(sk.photo.decodeError)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: sk.photo.remove }));
+    expect(onChange).toHaveBeenCalledWith(null);
+    expect(screen.queryByText(sk.photo.decodeError)).not.toBeInTheDocument();
+  });
+
   it("renders the slot title, two tips and the example caption", () => {
     render(<PhotoSlot photoKey="front" value={null} onChange={() => {}} />);
     const copy = sk.photo.slots.front;
@@ -191,5 +211,62 @@ describe("form step", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     const bodies = fetchMock.mock.calls.map((c) => (c as unknown as [string, RequestInit])[1].body);
     expect(bodies[1]).toBe(bodies[0]);
+  });
+});
+
+describe("analyze outcome", () => {
+  async function submitWith(fetchMock: Mock) {
+    vi.stubGlobal("fetch", fetchMock);
+    const utils = render(<AnalyzePage />);
+    giveConsent();
+    await addAllPhotos(utils.container);
+    fillInputs();
+    fireEvent.click(screen.getByRole("button", { name: sk.form.submit }));
+    return utils;
+  }
+
+  const jsonResponse = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+
+  it.each([400, 413])(
+    "%i shows the invalid-photos message and 'Upraviť fotky' returns to the filled form",
+    async (status) => {
+      const { container } = await submitWith(vi.fn(async () => jsonResponse(status, { error: "invalid_request" })));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(sk.errors.invalidPhotos);
+      expect(plausible).toHaveBeenCalledWith("blueprint_error", { props: { reason: "invalid_request" } });
+      expect(screen.queryByRole("button", { name: sk.common.retry })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: sk.common.backToForm }));
+      expect(container.querySelectorAll("img")).toHaveLength(3);
+      expect(screen.getByLabelText(sk.inputs.height.label)).toHaveValue("182");
+      expect(screen.getByRole("button", { name: sk.form.submit })).toBeEnabled();
+    },
+  );
+
+  it.each([
+    ["502", () => jsonResponse(502, { error: "analysis_failed" })],
+    ["malformed JSON", () => new Response("{not json", { status: 200 })],
+    ["an unexpected shape", () => jsonResponse(200, { status: "weird" })],
+  ])("%s shows the analysis-failed message with a retry button", async (_label, respond) => {
+    await submitWith(vi.fn(async () => respond()));
+    expect(await screen.findByRole("alert")).toHaveTextContent(sk.errors.analysisFailed);
+    expect(plausible).toHaveBeenCalledWith("blueprint_error", { props: { reason: "analysis_failed" } });
+    expect(screen.getByRole("button", { name: sk.common.retry })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: sk.common.backToForm })).not.toBeInTheDocument();
+  });
+
+  it("an ok response renders the blueprint and tracks blueprint_rendered once", async () => {
+    await submitWith(vi.fn(async () => jsonResponse(200, okFixture)));
+    expect(await screen.findByTestId("blueprint")).toBeInTheDocument();
+    expect(plausible.mock.calls.filter(([event]) => event === "blueprint_rendered")).toHaveLength(1);
+    expect(plausible.mock.calls.filter(([event]) => event === "blueprint_error")).toHaveLength(0);
+  });
+
+  it("a photo_issue response shows the fix instructions and tracks only blueprint_error", async () => {
+    await submitWith(vi.fn(async () => jsonResponse(200, photoIssueFixture)));
+    expect(await screen.findByText(photoIssueFixture.photo_issues[0].fix_instruction)).toBeInTheDocument();
+    expect(plausible).toHaveBeenCalledWith("blueprint_error", { props: { reason: "photo_issue" } });
+    expect(plausible.mock.calls.filter(([event]) => event === "blueprint_rendered")).toHaveLength(0);
   });
 });

@@ -19,7 +19,10 @@ export function ConsentStep({ onConfirm }: { onConfirm: () => void }) {
           </li>
         ))}
       </ul>
-      <Link href="/privacy" className="self-start text-sm text-accent underline underline-offset-4">
+      <Link
+        href="/privacy"
+        className="inline-flex min-h-11 items-center self-start text-sm text-accent underline underline-offset-4"
+      >
         {sk.common.privacyLink}
       </Link>
       <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 font-medium">

@@ -50,7 +50,10 @@ export default function LandingPage() {
           {t.cta}
         </Link>
         <p className="text-center text-sm text-muted">{t.note}</p>
-        <Link href="/privacy" className="self-center text-sm text-accent underline underline-offset-4">
+        <Link
+          href="/privacy"
+          className="inline-flex min-h-11 items-center self-center text-sm text-accent underline underline-offset-4"
+        >
           {sk.common.privacyLink}
         </Link>
       </div>
