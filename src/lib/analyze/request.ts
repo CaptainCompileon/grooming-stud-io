@@ -21,6 +21,13 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
+// Standard base64, no whitespace or data-URL prefix: anything else is rejected by the model API (400).
+const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+
+function isBase64(s: string): boolean {
+  return s.length % 4 === 0 && BASE64.test(s);
+}
+
 function decodedSize(b64: string): number {
   let padding = 0;
   while (padding < 2 && b64[b64.length - 1 - padding] === "=") padding++;
@@ -36,7 +43,7 @@ export function parseAnalyzeRequest(body: unknown): ParseResult {
   for (const key of PHOTO_KEYS) {
     const p = rawPhotos[key];
     if (typeof p !== "string") return fail(`missing_photo:${key}`);
-    if (!p.startsWith("/9j/")) return fail(`photo_not_jpeg:${key}`);
+    if (!p.startsWith("/9j/") || !isBase64(p)) return fail(`photo_not_jpeg:${key}`);
     if (decodedSize(p) > MAX_PHOTO_BYTES) return fail(`photo_too_large:${key}`);
     photos[key] = p;
   }

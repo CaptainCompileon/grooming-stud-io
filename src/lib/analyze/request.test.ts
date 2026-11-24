@@ -63,6 +63,22 @@ describe("parseAnalyzeRequest", () => {
     expect(err(withPhoto("front", "iVBORw0..."))).toBe("photo_not_jpeg:front");
   });
 
+  it.each([
+    ["a character outside the base64 alphabet", "/9j/" + "A".repeat(99) + "!"],
+    ["whitespace", "/9j/" + "A".repeat(50) + " " + "A".repeat(49)],
+    ["a data-URL prefix after the magic bytes", "/9j/data:image/jpeg;base64,AAAA"],
+    ["a length that is not a multiple of 4", "/9j/" + "A".repeat(101)],
+    ["padding in the middle", "/9j/AA==" + "A".repeat(96)],
+    ["three padding characters", "/9j/" + "A".repeat(97) + "==="],
+  ])("rejects malformed base64 (%s) as photo_not_jpeg", (_label, photo) => {
+    expect(err(withPhoto("profile", photo))).toBe("photo_not_jpeg:profile");
+  });
+
+  it("accepts base64 using + / and one or two padding characters", () => {
+    expect(parseAnalyzeRequest(withPhoto("front", "/9j/" + "+/Ab".repeat(24) + "AAA=")).ok).toBe(true);
+    expect(parseAnalyzeRequest(withPhoto("front", "/9j/" + "+/Ab".repeat(24) + "AA==")).ok).toBe(true);
+  });
+
   it("too large photo, and error never leaks data", () => {
     const big = "/9j/" + "A".repeat(2_100_000);
     const e = err(withPhoto("profile", big));
