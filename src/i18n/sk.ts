@@ -126,7 +126,8 @@ export const sk = {
 
   errors: {
     title: "Niečo sa nepodarilo",
-    invalidPhotos: "Fotky sa nepodarilo spracovať. Nahraj fotky znova, prosím.",
+    invalidPhotos:
+      "Fotky sa nedali spracovať. Skús ich nahradiť novými – ideálne odfotenými priamo mobilom.",
     refusal:
       "Z týchto fotiek sme Blueprint nevedeli pripraviť. Skús iné fotky – pri dennom svetle, bez okuliarov a podľa tipov pri každej fotke.",
     analysisFailed: "Analýza sa nepodarila. Skús znova.",
@@ -161,7 +162,7 @@ export const sk = {
       scissors: "nožnice",
       copy: "Kopírovať text",
       copied: "Skopírované",
-      copyError: "Text sa nepodarilo skopírovať. Označ ho a skopíruj ručne.",
+      copyError: "Text sa nepodarilo skopírovať. Označ ho a skopíruj ručne alebo si urob snímku obrazovky.",
       saveImage: "Uložiť ako obrázok",
       saving: "Ukladáme…",
       saveError: "Obrázok sa nepodarilo uložiť. Skús znova alebo si urob snímku obrazovky.",
