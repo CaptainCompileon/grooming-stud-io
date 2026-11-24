@@ -15,7 +15,7 @@
 
 | ID | Ticket | Stav | Odhad | Závisí od | Blokuje bránu? |
 |---|---|---|---|---|---|
-| W1-01 | ADR: výber modelu / poskytovateľa | ⬜ | 3 h | – | **Áno** |
+| W1-01 | ADR: výber modelu / poskytovateľa | 📝 | 3 h | – | **Áno** |
 | W1-02 | Golden set: 10 fotiek + matica pokrytia | ⬜ | 2 h | – | **Áno** |
 | W1-03 | Review KB: `face-shapes.md` | 📝 | 1 h | – | Áno |
 | W1-04 | Review KB: `color-contrast.md` | 📝 | 1 h | – | Áno |
@@ -24,8 +24,8 @@
 | W1-07 | Review KB: `barber-terminology.md` | 📝 | 0,5 h | – | Áno |
 | W1-08 | Review systémového promptu | 📝 | 1 h | W1-03…07 | Áno |
 | W1-09 | JSON Schema výstupu v1.0 | ✅ | – | – | – |
-| W1-10 | Guardrails modul | ⬜ | 2 h | W1-09 | **Áno** |
-| W1-11 | Offline eval CLI | ⬜ | 3 h | W1-01, W1-10 | **Áno** |
+| W1-10 | Guardrails modul | ✅ | 2 h | W1-09 | **Áno** |
+| W1-11 | Offline eval CLI | ✅ | 3 h | W1-01, W1-10 | **Áno** |
 | W1-12 | Hodnotiaca rubrika + hárok | ⬜ | 0,5 h | – | Áno |
 | W1-13 | Kalibrácia: 2 – 3 iterácie pravidiel | ⬜ | 3 h | W1-11, W1-12 | **Áno** |
 | W1-14 | Konzultácia s barberom (30 min) | ⬜ | 1 h | W1-13 (1. kolo) | Nie (P1) |
@@ -39,6 +39,8 @@
 ## Tickety
 
 ### W1-01 · ADR: výber modelu / poskytovateľa
+**Stav:** 📝 predbežné ADR (`docs/adr/0001-model-provider.md`, `src/lib/analyze/model-client.ts`); porovnanie, cena a p95 čakajú na eval so skutočným kľúčom.
+
 Rozhodnúť PRD Q1. Otestovať 2 kandidátov na 3 fotkách z golden setu s rovnakým promptom a KB.
 - **Kritériá porovnania:** kvalita vision (správny tvar tváre/postavy vs. tvoje hodnotenie), natívna podpora JSON Schema výstupu, retencia dát z API a či sa používajú na tréning, cena za 1 analýzu (3 obrázky + ~8k tokenov kontextu + ~1,5k výstup), p95 latencia, podpora prompt cachingu.
 - **Akceptačné kritériá:**
@@ -79,6 +81,8 @@ Drafty sú v `knowledge-base/`. Pri reviewe:
 - Pri W1-01 overiť, ktoré konštrukcie vybraný poskytovateľ v štruktúrovanom výstupe **nepodporuje** (`minItems`, `pattern`, `anyOf`, `$ref`…). V prípade potreby pripraviť zjednodušenú variantu pre model; plnú schému ponechať pre validáciu na serveri.
 
 ### W1-10 · Guardrails modul
+**Stav:** ✅ `src/lib/guardrails/index.ts`.
+
 Samostatný modul (TypeScript), ktorý sa neskôr použije v `/api/analyze`.
 - **Akceptačné kritériá:**
   - [ ] Validácia proti `blueprint.schema.json` (napr. `ajv` s draft 2020-12).
@@ -89,6 +93,8 @@ Samostatný modul (TypeScript), ktorý sa neskôr použije v `/api/analyze`.
   - [ ] Unit testy: 1 validný príklad (z kontraktu) + ≥ 5 nevalidných (každé pravidlo).
 
 ### W1-11 · Offline eval CLI
+**Stav:** ✅ `scripts/eval.ts`, `scripts/eval-lib.ts`, návod v `eval/README.md`.
+
 `scripts/eval` – spustí analýzu nad golden setom.
 - **Akceptačné kritériá:**
   - [ ] Vstup: cesta k privátnemu priečinku s fotkami + `eval/cases.yaml`.

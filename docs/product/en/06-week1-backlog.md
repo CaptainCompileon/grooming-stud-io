@@ -17,7 +17,7 @@
 
 | ID | Ticket | Status | Estimate | Depends on | Blocks the gate? |
 |---|---|---|---|---|---|
-| W1-01 | ADR: model / provider choice | ⬜ | 3 h | – | **Yes** |
+| W1-01 | ADR: model / provider choice | 📝 | 3 h | – | **Yes** |
 | W1-02 | Golden set: 10 photos + coverage matrix | ⬜ | 2 h | – | **Yes** |
 | W1-03 | KB review: `face-shapes.md` | 📝 | 1 h | – | Yes |
 | W1-04 | KB review: `color-contrast.md` | 📝 | 1 h | – | Yes |
@@ -26,8 +26,8 @@
 | W1-07 | KB review: `barber-terminology.md` | 📝 | 0.5 h | – | Yes |
 | W1-08 | System prompt review | 📝 | 1 h | W1-03…07 | Yes |
 | W1-09 | Output JSON Schema v1.0 | ✅ | – | – | – |
-| W1-10 | Guardrails module | ⬜ | 2 h | W1-09 | **Yes** |
-| W1-11 | Offline eval CLI | ⬜ | 3 h | W1-01, W1-10 | **Yes** |
+| W1-10 | Guardrails module | ✅ | 2 h | W1-09 | **Yes** |
+| W1-11 | Offline eval CLI | ✅ | 3 h | W1-01, W1-10 | **Yes** |
 | W1-12 | Scoring rubric + sheet | ⬜ | 0.5 h | – | Yes |
 | W1-13 | Calibration: 2 – 3 rule iterations | ⬜ | 3 h | W1-11, W1-12 | **Yes** |
 | W1-14 | Barber consultation (30 min) | ⬜ | 1 h | W1-13 (round 1) | No (P1) |
@@ -41,6 +41,8 @@
 ## Tickets
 
 ### W1-01 · ADR: model / provider choice
+**Status:** 📝 provisional ADR (`docs/adr/0001-model-provider.md`, `src/lib/analyze/model-client.ts`); comparison, cost and p95 await an eval run with a real key.
+
 Resolve PRD Q1. Test 2 candidates on 3 photos from the golden set with the same prompt and KB.
 - **Comparison criteria:** vision quality (correct face shape/build vs. your own assessment), native support for JSON Schema output, API data retention and whether data is used for training, cost per analysis (3 images + ~8k tokens of context + ~1.5k output), p95 latency, prompt caching support.
 - **Acceptance criteria:**
@@ -81,6 +83,8 @@ The drafts are in `knowledge-base/`. During review:
 - During W1-01, verify which constructs the chosen provider **does not support** in structured output (`minItems`, `pattern`, `anyOf`, `$ref`…). If needed, prepare a simplified variant for the model; keep the full schema for server-side validation.
 
 ### W1-10 · Guardrails module
+**Status:** ✅ `src/lib/guardrails/index.ts`.
+
 A standalone module (TypeScript), to be used later in `/api/analyze`.
 - **Acceptance criteria:**
   - [ ] Validation against `blueprint.schema.json` (e.g. `ajv` with draft 2020-12).
@@ -91,6 +95,8 @@ A standalone module (TypeScript), to be used later in `/api/analyze`.
   - [ ] Unit tests: 1 valid example (from the contract) + ≥ 5 invalid ones (one per rule).
 
 ### W1-11 · Offline eval CLI
+**Status:** ✅ `scripts/eval.ts`, `scripts/eval-lib.ts`, usage in `eval/README.md`.
+
 `scripts/eval` – runs the analysis over the golden set.
 - **Acceptance criteria:**
   - [ ] Input: path to the private photo folder + `eval/cases.yaml`.
