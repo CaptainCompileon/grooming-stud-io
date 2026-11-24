@@ -1,0 +1,16 @@
+[
+  {
+    "case_id": "example-01",
+    "description": "Example: round face, high contrast, tall; fill in your own observations",
+    "photos": { "front": "example-01-front.jpg", "profile": "example-01-profile.jpg", "full_body": "example-01-full.jpg" },
+    "inputs": { "height_cm": 188, "hair_type": "wavy", "preferred_style": "smart_casual" },
+    "expected": { "face_shape": "round", "contrast_level": "high", "body_frame": "rectangle", "status": "ok" }
+  },
+  {
+    "case_id": "example-02-unusable",
+    "description": "Example: deliberately unusable set (dark, cropped body) to test photo_issue",
+    "photos": { "front": "example-02-front.jpg", "profile": "example-02-profile.jpg", "full_body": "example-02-full.jpg" },
+    "inputs": { "height_cm": 168, "hair_type": "thinning", "preferred_style": "minimal" },
+    "expected": { "status": "photo_issue" }
+  }
+]
