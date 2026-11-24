@@ -7,7 +7,7 @@
 | **Súvisiace** | [Implementačný plán – Fáza 1](./03-implementation-plan.md#fáza-1--mozog-a-kalibrácia-pravidiel-týždeň-1) · [Knowledge base](../../knowledge-base/README.md) · [System prompt](../../prompts/system.md) · [Schéma](./blueprint.schema.json) |
 
 **Legenda stavu:** ✅ hotové · 📝 draft v0.1 je v repe, treba review · ⬜ todo
-**Odhad:** v hodinách (h). Spolu ⬜ + 📝 ≈ 19 h.
+**Odhad:** v hodinách (h). Spolu ⬜ + 📝 ≈ 16 h.
 
 ---
 

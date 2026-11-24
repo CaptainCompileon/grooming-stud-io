@@ -9,7 +9,7 @@
 | **Related** | [Implementation Plan – Phase 1](./03-implementation-plan.md#phase-1--the-brain-and-rule-calibration-week-1) · [Knowledge base](../../../knowledge-base/README.md) · [System prompt](../../../prompts/system.md) · [Schema](../blueprint.schema.json) |
 
 **Status legend:** ✅ done · 📝 draft v0.1 is in the repo, needs review · ⬜ todo
-**Estimate:** in hours (h). Total ⬜ + 📝 ≈ 19 h.
+**Estimate:** in hours (h). Total ⬜ + 📝 ≈ 16 h.
 
 ---
 
