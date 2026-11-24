@@ -13,12 +13,13 @@ const req: AnalyzeRequest = {
 
 type Step = ModelOutput | Error;
 
-function fakeModel(steps: Step[]): VisionModel & { calls: ModelInput[] } {
+function fakeModel(steps: Step[], onCall?: () => void): VisionModel & { calls: ModelInput[] } {
   const calls: ModelInput[] = [];
   return {
     calls,
     async generate(input) {
       calls.push(input);
+      onCall?.();
       const step = steps[calls.length - 1];
       if (step === undefined) throw new Error("fake model called too often");
       if (step instanceof Error) throw step;
@@ -118,5 +119,60 @@ describe("analyzePhotos", () => {
     expect(result).toMatchObject({ ok: false, reason: "invalid_output", attempts: 2 });
     expect(lastBlockText(model.calls[1])).toMatch(/PARSE: /);
     expect(result.ok === false && result.violations?.[0]).toMatch(/^PARSE: /);
+  });
+
+  it("returns refusal with attempts 2 when the retry is refused", async () => {
+    const model = fakeModel([invalid, { text: null, stopReason: "refusal" }]);
+    const result = await analyzePhotos(req, model);
+    expect(result).toEqual({ ok: false, reason: "refusal", attempts: 2 });
+    expect(model.calls).toHaveLength(2);
+  });
+});
+
+describe("analyzePhotos time budget", () => {
+  function clock(stepMs: number) {
+    let t = 1_000_000;
+    return { now: () => t, advance: () => (t += stepMs) };
+  }
+
+  it("passes the remaining budget as timeoutMs, decreasing between attempts", async () => {
+    const c = clock(10_000);
+    const model = fakeModel([invalid, valid], c.advance);
+    const result = await analyzePhotos(req, model, { now: c.now });
+    expect(result).toMatchObject({ ok: true, attempts: 2 });
+    expect(model.calls[0].timeoutMs).toBe(55_000);
+    expect(model.calls[1].timeoutMs).toBe(45_000);
+  });
+
+  it("uses a 55 s default deadline with the real clock", async () => {
+    const model = fakeModel([valid]);
+    await analyzePhotos(req, model);
+    expect(model.calls[0].timeoutMs).toBeGreaterThan(50_000);
+    expect(model.calls[0].timeoutMs).toBeLessThanOrEqual(55_000);
+  });
+
+  it("still retries when exactly 15 s remain", async () => {
+    const c = clock(25_000);
+    const model = fakeModel([invalid, valid], c.advance);
+    const result = await analyzePhotos(req, model, { deadlineMs: 40_000, now: c.now });
+    expect(result).toMatchObject({ ok: true, attempts: 2 });
+    expect(model.calls[1].timeoutMs).toBe(15_000);
+  });
+
+  it("skips the retry and returns invalid_output when under 15 s remain", async () => {
+    const c = clock(41_000);
+    const model = fakeModel([invalid, valid], c.advance);
+    const result = await analyzePhotos(req, model, { now: c.now });
+    expect(result).toMatchObject({ ok: false, reason: "invalid_output", attempts: 1 });
+    expect(result.ok === false && result.violations?.[0]).toMatch(/^SCHEMA: /);
+    expect(model.calls).toHaveLength(1);
+  });
+
+  it("skips the retry and returns model_error when the model threw and under 15 s remain", async () => {
+    const c = clock(41_000);
+    const model = fakeModel([new Error("timeout"), valid], c.advance);
+    const result = await analyzePhotos(req, model, { now: c.now });
+    expect(result).toEqual({ ok: false, reason: "model_error", attempts: 1 });
+    expect(model.calls).toHaveLength(1);
   });
 });

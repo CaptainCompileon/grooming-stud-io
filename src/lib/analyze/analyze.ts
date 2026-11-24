@@ -23,10 +23,20 @@ type AttemptOutcome =
 
 const OUTPUT_SCHEMA = toModelSchema(schema as Record<string, unknown>);
 
+export const DEFAULT_DEADLINE_MS = 55_000;
+/** A retry is only started when at least this much of the deadline is left. */
+export const MIN_RETRY_BUDGET_MS = 15_000;
+
+export interface AnalyzeOptions {
+  deadlineMs?: number;
+  now?: () => number;
+}
+
 // Violation strings never include request content (photos).
 async function attempt(
   req: AnalyzeRequest,
   model: VisionModel,
+  timeoutMs: number,
   corrections?: string[],
 ): Promise<AttemptOutcome> {
   let output;
@@ -35,6 +45,7 @@ async function attempt(
       system: buildSystemBlocks(req.locale),
       content: buildUserContent(req, corrections),
       outputSchema: OUTPUT_SCHEMA,
+      timeoutMs,
     });
   } catch {
     return { kind: "model_error" };
@@ -59,13 +70,27 @@ async function attempt(
   return checked.ok ? { kind: "ok", response: checked.data } : { kind: "invalid", violations: checked.violations };
 }
 
-export async function analyzePhotos(req: AnalyzeRequest, model: VisionModel): Promise<AnalyzeResult> {
-  const first = await attempt(req, model);
+export async function analyzePhotos(
+  req: AnalyzeRequest,
+  model: VisionModel,
+  opts: AnalyzeOptions = {},
+): Promise<AnalyzeResult> {
+  const now = opts.now ?? Date.now;
+  const deadline = now() + (opts.deadlineMs ?? DEFAULT_DEADLINE_MS);
+
+  const first = await attempt(req, model, deadline - now());
   if (first.kind === "ok") return { ok: true, response: first.response, attempts: 1 };
   if (first.kind === "refusal") return { ok: false, reason: "refusal", attempts: 1 };
 
+  const remaining = deadline - now();
+  if (remaining < MIN_RETRY_BUDGET_MS) {
+    return first.kind === "model_error"
+      ? { ok: false, reason: "model_error", attempts: 1 }
+      : { ok: false, reason: "invalid_output", attempts: 1, violations: first.violations };
+  }
+
   const corrections = first.kind === "invalid" ? first.violations : undefined;
-  const second = await attempt(req, model, corrections);
+  const second = await attempt(req, model, remaining, corrections);
   switch (second.kind) {
     case "ok":
       return { ok: true, response: second.response, attempts: 2 };

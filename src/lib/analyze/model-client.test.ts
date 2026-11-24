@@ -97,6 +97,32 @@ describe("createAnthropicModel", () => {
     expect(params).not.toHaveProperty("thinking");
     expect(params).not.toHaveProperty("temperature");
     expect(params).not.toHaveProperty("stream");
+    expect(create.mock.calls[0][1]).toEqual({ maxRetries: 0 });
+  });
+
+  it("passes timeoutMs as the request timeout and disables SDK retries", async () => {
+    const { client, create } = fakeClient(response);
+    await createAnthropicModel({ client }).generate({ ...input, timeoutMs: 30_000 });
+    expect(create.mock.calls[0][1]).toEqual({ timeout: 30_000, maxRetries: 0 });
+    expect(create.mock.calls[0][0]).not.toHaveProperty("timeoutMs");
+  });
+
+  it("falls back to defaults when env vars are empty strings", async () => {
+    vi.stubEnv("ANTHROPIC_MODEL", "");
+    vi.stubEnv("ANTHROPIC_EFFORT", "");
+    const { client, create } = fakeClient(response);
+    await createAnthropicModel({ client }).generate(input);
+    expect(create.mock.calls[0][0]).toMatchObject({
+      model: "claude-opus-5-5",
+      output_config: { effort: "medium" },
+    });
+  });
+
+  it("falls back to medium effort when ANTHROPIC_EFFORT is not a known level", async () => {
+    vi.stubEnv("ANTHROPIC_EFFORT", "turbo");
+    const { client, create } = fakeClient(response);
+    await createAnthropicModel({ client }).generate(input);
+    expect(create.mock.calls[0][0]).toMatchObject({ output_config: { effort: "medium" } });
   });
 
   it("reads model and effort from env, and options override env", async () => {
