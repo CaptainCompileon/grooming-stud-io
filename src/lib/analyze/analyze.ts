@@ -13,12 +13,14 @@ export type AnalyzeResult =
       reason: "refusal" | "invalid_output" | "model_error";
       attempts: 1 | 2;
       violations?: string[];
+      /** Constructor name (plus ":status" when numeric) of the error thrown by the last failing attempt; never the message. */
+      errorName?: string;
     };
 
 type AttemptOutcome =
   | { kind: "ok"; response: BlueprintResponse }
   | { kind: "refusal" }
-  | { kind: "model_error" }
+  | { kind: "model_error"; errorName: string }
   | { kind: "invalid"; violations: string[] };
 
 const OUTPUT_SCHEMA = toModelSchema(schema as Record<string, unknown>);
@@ -32,6 +34,15 @@ export interface AnalyzeOptions {
   now?: () => number;
 }
 
+// Never includes the error message (it may echo request content).
+function describeError(err: unknown): string {
+  const name =
+    (err as { constructor?: { name?: string } } | null)?.constructor?.name ??
+    "Error";
+  const status = (err as { status?: unknown } | null)?.status;
+  return typeof status === "number" ? `${name}:${status}` : name;
+}
+
 // Violation strings never include request content (photos).
 async function attempt(
   req: AnalyzeRequest,
@@ -39,21 +50,26 @@ async function attempt(
   timeoutMs: number,
   corrections?: string[],
 ): Promise<AttemptOutcome> {
+  // Built outside the try: prompt-assembly bugs must throw, not look like model_error.
+  const input = {
+    system: buildSystemBlocks(req.locale),
+    content: buildUserContent(req, corrections),
+    outputSchema: OUTPUT_SCHEMA,
+    timeoutMs,
+  };
   let output;
   try {
-    output = await model.generate({
-      system: buildSystemBlocks(req.locale),
-      content: buildUserContent(req, corrections),
-      outputSchema: OUTPUT_SCHEMA,
-      timeoutMs,
-    });
-  } catch {
-    return { kind: "model_error" };
+    output = await model.generate(input);
+  } catch (err) {
+    return { kind: "model_error", errorName: describeError(err) };
   }
 
   if (output.stopReason === "refusal") return { kind: "refusal" };
   if (output.stopReason === "max_tokens") {
-    return { kind: "invalid", violations: ["PARSE: output was cut off at max_tokens"] };
+    return {
+      kind: "invalid",
+      violations: ["PARSE: output was cut off at max_tokens"],
+    };
   }
   if (output.text === null) {
     return { kind: "invalid", violations: ["PARSE: output contained no text"] };
@@ -67,7 +83,9 @@ async function attempt(
   }
 
   const checked = checkBlueprint(data);
-  return checked.ok ? { kind: "ok", response: checked.data } : { kind: "invalid", violations: checked.violations };
+  return checked.ok
+    ? { kind: "ok", response: checked.data }
+    : { kind: "invalid", violations: checked.violations };
 }
 
 export async function analyzePhotos(
@@ -79,14 +97,26 @@ export async function analyzePhotos(
   const deadline = now() + (opts.deadlineMs ?? DEFAULT_DEADLINE_MS);
 
   const first = await attempt(req, model, deadline - now());
-  if (first.kind === "ok") return { ok: true, response: first.response, attempts: 1 };
-  if (first.kind === "refusal") return { ok: false, reason: "refusal", attempts: 1 };
+  if (first.kind === "ok")
+    return { ok: true, response: first.response, attempts: 1 };
+  if (first.kind === "refusal")
+    return { ok: false, reason: "refusal", attempts: 1 };
 
   const remaining = deadline - now();
   if (remaining < MIN_RETRY_BUDGET_MS) {
     return first.kind === "model_error"
-      ? { ok: false, reason: "model_error", attempts: 1 }
-      : { ok: false, reason: "invalid_output", attempts: 1, violations: first.violations };
+      ? {
+          ok: false,
+          reason: "model_error",
+          attempts: 1,
+          errorName: first.errorName,
+        }
+      : {
+          ok: false,
+          reason: "invalid_output",
+          attempts: 1,
+          violations: first.violations,
+        };
   }
 
   const corrections = first.kind === "invalid" ? first.violations : undefined;
@@ -97,8 +127,18 @@ export async function analyzePhotos(
     case "refusal":
       return { ok: false, reason: "refusal", attempts: 2 };
     case "model_error":
-      return { ok: false, reason: "model_error", attempts: 2 };
+      return {
+        ok: false,
+        reason: "model_error",
+        attempts: 2,
+        errorName: second.errorName,
+      };
     case "invalid":
-      return { ok: false, reason: "invalid_output", attempts: 2, violations: second.violations };
+      return {
+        ok: false,
+        reason: "invalid_output",
+        attempts: 2,
+        violations: second.violations,
+      };
   }
 }

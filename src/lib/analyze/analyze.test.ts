@@ -13,7 +13,10 @@ const req: AnalyzeRequest = {
 
 type Step = ModelOutput | Error;
 
-function fakeModel(steps: Step[], onCall?: () => void): VisionModel & { calls: ModelInput[] } {
+function fakeModel(
+  steps: Step[],
+  onCall?: () => void,
+): VisionModel & { calls: ModelInput[] } {
   const calls: ModelInput[] = [];
   return {
     calls,
@@ -28,7 +31,10 @@ function fakeModel(steps: Step[], onCall?: () => void): VisionModel & { calls: M
   };
 }
 
-const valid: ModelOutput = { text: JSON.stringify(okFixture), stopReason: "end_turn" };
+const valid: ModelOutput = {
+  text: JSON.stringify(okFixture),
+  stopReason: "end_turn",
+};
 const invalid: ModelOutput = { text: "{}", stopReason: "end_turn" };
 
 function lastBlockText(input: ModelInput): string {
@@ -67,8 +73,16 @@ describe("analyzePhotos", () => {
 
   it("puts the first violation into the second call's last content block", async () => {
     const banned = structuredClone(okFixture) as Record<string, unknown>;
-    ((banned.blueprint as Record<string, unknown>).observations as Record<string, unknown>).hair_notes = "Si veľmi atraktívny.";
-    const model = fakeModel([{ text: JSON.stringify(banned), stopReason: "end_turn" }, valid]);
+    (
+      (banned.blueprint as Record<string, unknown>).observations as Record<
+        string,
+        unknown
+      >
+    ).hair_notes = "Si veľmi atraktívny.";
+    const model = fakeModel([
+      { text: JSON.stringify(banned), stopReason: "end_turn" },
+      valid,
+    ]);
     const result = await analyzePhotos(req, model);
     expect(result.ok).toBe(true);
     expect(lastBlockText(model.calls[1])).toMatch(/atraktív/);
@@ -77,7 +91,11 @@ describe("analyzePhotos", () => {
   it("fails with invalid_output after two invalid outputs", async () => {
     const model = fakeModel([invalid, invalid]);
     const result = await analyzePhotos(req, model);
-    expect(result).toMatchObject({ ok: false, reason: "invalid_output", attempts: 2 });
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "invalid_output",
+      attempts: 2,
+    });
     expect(result.ok === false && result.violations?.[0]).toMatch(/^SCHEMA: /);
     expect(model.calls).toHaveLength(2);
   });
@@ -99,12 +117,42 @@ describe("analyzePhotos", () => {
   it("fails with model_error when the model throws twice", async () => {
     const model = fakeModel([new Error("a"), new Error("b")]);
     const result = await analyzePhotos(req, model);
-    expect(result).toEqual({ ok: false, reason: "model_error", attempts: 2 });
+    expect(result).toEqual({
+      ok: false,
+      reason: "model_error",
+      attempts: 2,
+      errorName: "Error",
+    });
+  });
+
+  it("reports errorName with the numeric status and never the message", async () => {
+    class ApiError extends Error {
+      constructor(
+        message: string,
+        readonly status: number,
+      ) {
+        super(message);
+      }
+    }
+    const model = fakeModel([
+      new ApiError("secret /9j/AAAA", 500),
+      new ApiError("secret /9j/AAAA", 401),
+    ]);
+    const result = await analyzePhotos(req, model);
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "model_error",
+      errorName: "ApiError:401",
+    });
+    expect(JSON.stringify(result)).not.toContain("secret");
   });
 
   it("treats a max_tokens stop with truncated text as a parse failure and retries", async () => {
     const truncated = JSON.stringify(okFixture).slice(0, 200);
-    const model = fakeModel([{ text: truncated, stopReason: "max_tokens" }, valid]);
+    const model = fakeModel([
+      { text: truncated, stopReason: "max_tokens" },
+      valid,
+    ]);
     const result = await analyzePhotos(req, model);
     expect(result).toEqual({ ok: true, response: okFixture, attempts: 2 });
     expect(lastBlockText(model.calls[1])).toMatch(/PARSE: /);
@@ -116,7 +164,11 @@ describe("analyzePhotos", () => {
       { text: "not json", stopReason: "end_turn" },
     ]);
     const result = await analyzePhotos(req, model);
-    expect(result).toMatchObject({ ok: false, reason: "invalid_output", attempts: 2 });
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "invalid_output",
+      attempts: 2,
+    });
     expect(lastBlockText(model.calls[1])).toMatch(/PARSE: /);
     expect(result.ok === false && result.violations?.[0]).toMatch(/^PARSE: /);
   });
@@ -154,7 +206,10 @@ describe("analyzePhotos time budget", () => {
   it("still retries when exactly 15 s remain", async () => {
     const c = clock(25_000);
     const model = fakeModel([invalid, valid], c.advance);
-    const result = await analyzePhotos(req, model, { deadlineMs: 40_000, now: c.now });
+    const result = await analyzePhotos(req, model, {
+      deadlineMs: 40_000,
+      now: c.now,
+    });
     expect(result).toMatchObject({ ok: true, attempts: 2 });
     expect(model.calls[1].timeoutMs).toBe(15_000);
   });
@@ -163,7 +218,11 @@ describe("analyzePhotos time budget", () => {
     const c = clock(41_000);
     const model = fakeModel([invalid, valid], c.advance);
     const result = await analyzePhotos(req, model, { now: c.now });
-    expect(result).toMatchObject({ ok: false, reason: "invalid_output", attempts: 1 });
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "invalid_output",
+      attempts: 1,
+    });
     expect(result.ok === false && result.violations?.[0]).toMatch(/^SCHEMA: /);
     expect(model.calls).toHaveLength(1);
   });
@@ -172,7 +231,12 @@ describe("analyzePhotos time budget", () => {
     const c = clock(41_000);
     const model = fakeModel([new Error("timeout"), valid], c.advance);
     const result = await analyzePhotos(req, model, { now: c.now });
-    expect(result).toEqual({ ok: false, reason: "model_error", attempts: 1 });
+    expect(result).toEqual({
+      ok: false,
+      reason: "model_error",
+      attempts: 1,
+      errorName: "Error",
+    });
     expect(model.calls).toHaveLength(1);
   });
 });
