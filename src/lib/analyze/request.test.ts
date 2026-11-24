@@ -4,9 +4,11 @@ import { MAX_PHOTO_BYTES, parseAnalyzeRequest } from "./request";
 const jpeg = "/9j/" + "A".repeat(100);
 const valid = () => ({
   photos: { front: jpeg, profile: jpeg, full_body: jpeg },
-  height_cm: 180,
-  hair_type: "wavy",
-  preferred_style: "casual",
+  inputs: { height_cm: 180, hair_type: "wavy", preferred_style: "casual" },
+});
+const withInputs = (patch: Record<string, unknown>) => ({
+  ...valid(),
+  inputs: { ...valid().inputs, ...patch },
 });
 const err = (body: unknown) => {
   const r = parseAnalyzeRequest(body);
@@ -85,16 +87,25 @@ describe("parseAnalyzeRequest", () => {
   });
 
   it.each([139, 221, 180.5, "180", null, NaN])("invalid height %j", (h) => {
-    expect(err({ ...valid(), height_cm: h })).toBe("invalid_height");
+    expect(err(withInputs({ height_cm: h }))).toBe("invalid_height");
   });
+  it.each([undefined, null, "x", []])("missing or non-object inputs %j → invalid_height", (inputs) => {
+    expect(err({ ...valid(), inputs })).toBe("invalid_height");
+  });
+
+  it("rejects the old top-level input shape", () => {
+    const { inputs, ...rest } = valid();
+    expect(err({ ...rest, ...inputs })).toBe("invalid_height");
+  });
+
   it("accepts height bounds", () => {
-    expect(parseAnalyzeRequest({ ...valid(), height_cm: 140 }).ok).toBe(true);
-    expect(parseAnalyzeRequest({ ...valid(), height_cm: 220 }).ok).toBe(true);
+    expect(parseAnalyzeRequest(withInputs({ height_cm: 140 })).ok).toBe(true);
+    expect(parseAnalyzeRequest(withInputs({ height_cm: 220 })).ok).toBe(true);
   });
 
   it("invalid hair_type / style / locale", () => {
-    expect(err({ ...valid(), hair_type: "bald" })).toBe("invalid_hair_type");
-    expect(err({ ...valid(), preferred_style: "goth" })).toBe("invalid_style");
+    expect(err(withInputs({ hair_type: "bald" }))).toBe("invalid_hair_type");
+    expect(err(withInputs({ preferred_style: "goth" }))).toBe("invalid_style");
     expect(err({ ...valid(), locale: "en" })).toBe("invalid_locale");
   });
 

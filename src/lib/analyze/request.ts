@@ -41,14 +41,16 @@ export function parseAnalyzeRequest(body: unknown): ParseResult {
     photos[key] = p;
   }
 
-  const h = body.height_cm;
+  // Inputs are nested under `inputs` (architecture §3.2); a missing object fails the first input check.
+  const inputs = isRecord(body.inputs) ? body.inputs : {};
+  const h = inputs.height_cm;
   if (typeof h !== "number" || !Number.isInteger(h) || h < 140 || h > 220) {
     return fail("invalid_height");
   }
-  if (typeof body.hair_type !== "string" || !HAIR_TYPES.includes(body.hair_type)) {
+  if (typeof inputs.hair_type !== "string" || !HAIR_TYPES.includes(inputs.hair_type)) {
     return fail("invalid_hair_type");
   }
-  if (typeof body.preferred_style !== "string" || !STYLES.includes(body.preferred_style)) {
+  if (typeof inputs.preferred_style !== "string" || !STYLES.includes(inputs.preferred_style)) {
     return fail("invalid_style");
   }
   if (body.locale !== undefined && body.locale !== "sk") return fail("invalid_locale");
@@ -62,8 +64,8 @@ export function parseAnalyzeRequest(body: unknown): ParseResult {
       photos,
       inputs: {
         height_cm: h,
-        hair_type: body.hair_type as HairType,
-        preferred_style: body.preferred_style as PreferredStyle,
+        hair_type: inputs.hair_type as HairType,
+        preferred_style: inputs.preferred_style as PreferredStyle,
       },
       measurements: null,
       locale: "sk",

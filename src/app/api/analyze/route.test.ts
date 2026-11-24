@@ -13,9 +13,7 @@ import { POST } from "./route";
 
 const validBody = () => ({
   photos: { front: PHOTO, profile: PHOTO, full_body: PHOTO },
-  height_cm: 180,
-  hair_type: "wavy",
-  preferred_style: "casual",
+  inputs: { height_cm: 180, hair_type: "wavy", preferred_style: "casual" },
   measurements: null,
   locale: "sk",
 });
