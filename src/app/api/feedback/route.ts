@@ -3,7 +3,8 @@ import { logRequest } from "@/lib/server/log";
 export const runtime = "nodejs";
 
 const MAX_TEXT = 1000;
-const MAX_REF = 64;
+// Same shape as the client-side `ref` URL param; anything else is dropped, not rejected.
+const REF = /^[a-z0-9_-]{1,16}$/i;
 
 interface Feedback {
   value: "up" | "down";
@@ -21,9 +22,17 @@ function parseFeedback(body: unknown): Feedback | null {
     (typeof text !== "string" || text.length > MAX_TEXT)
   )
     return null;
-  if (ref !== undefined && (typeof ref !== "string" || ref.length > MAX_REF))
-    return null;
-  return { value, text, ref };
+  return {
+    value,
+    text,
+    ref: typeof ref === "string" && REF.test(ref) ? ref : undefined,
+  };
+}
+
+// The webhook is usually Slack or Discord: keep user text from pinging the
+// channel (<!channel>, <!here>, @everyone, <@U123>).
+function neutraliseMentions(text: string): string {
+  return text.replaceAll("<!", "< !").replaceAll("@", "@\u200b");
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -71,7 +80,10 @@ export async function POST(request: Request): Promise<Response> {
 
   const payload = {
     value: feedback.value,
-    text: feedback.text,
+    text:
+      feedback.text === undefined
+        ? undefined
+        : neutraliseMentions(feedback.text),
     ref: feedback.ref,
   };
   const webhook = process.env.FEEDBACK_WEBHOOK_URL;

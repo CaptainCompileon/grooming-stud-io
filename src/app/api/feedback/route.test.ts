@@ -65,4 +65,46 @@ describe("POST /api/feedback", () => {
     expect((await post({ value: "up", text: 5 })).status).toBe(400);
     expect((await post("nope")).status).toBe(400);
   });
+
+  describe("forwarded payload", () => {
+    function forwarded(fetchMock: ReturnType<typeof vi.fn>) {
+      const [, init] = fetchMock.mock.calls[0];
+      return JSON.parse(init.body);
+    }
+
+    beforeEach(() => {
+      vi.stubEnv("FEEDBACK_WEBHOOK_URL", "https://hooks.example/x");
+    });
+
+    it.each([
+      ["too long", "a".repeat(17)],
+      ["with a mention", "<!channel>"],
+      ["with spaces", "ig story"],
+      ["empty", ""],
+      ["not a string", 5],
+    ])("drops an invalid ref (%s) and still returns 204", async (_label, ref) => {
+      const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+      const res = await post({ value: "up", ref });
+      expect(res.status).toBe(204);
+      expect(forwarded(fetchMock)).toEqual({ value: "up" });
+    });
+
+    it("keeps a ref of 16 letters, digits, _ and -", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+      await post({ value: "down", ref: "IG_story-2026abc" });
+      expect(forwarded(fetchMock)).toEqual({ value: "down", ref: "IG_story-2026abc" });
+    });
+
+    it("neutralises Slack/Discord mentions in the text", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+      await post({ value: "up", text: "<!channel> @here @everyone ping <@U123>" });
+      const { text } = forwarded(fetchMock);
+      expect(text).toBe("< !channel> @\u200bhere @\u200beveryone ping <@\u200bU123>");
+      expect(text).not.toContain("<!");
+      expect(text).not.toMatch(/@(?!\u200b)/);
+    });
+  });
 });
