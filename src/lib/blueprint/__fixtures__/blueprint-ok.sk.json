@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "status": "ok",
+  "photo_issues": [],
+  "blueprint": {
+    "observations": {
+      "face_shape": "round",
+      "face_shape_confidence": "high",
+      "contrast_level": "medium",
+      "undertone": "warm",
+      "color_confidence": "medium",
+      "body_frame": "inverted_triangle",
+      "body_confidence": "medium",
+      "hair_notes": "Husté, mierne vlnité vlasy, rovná línia čela."
+    },
+    "card_barber": {
+      "cut_name": "Textured crop with low taper",
+      "cut_name_local": "Krátky strih s textúrou hore a nízkym prechodom po bokoch",
+      "top_length_mm": 40,
+      "sides_length_mm": 6,
+      "back_length_mm": 10,
+      "transition": "low_taper",
+      "neckline": "natural_tapered",
+      "texture_finish": "Point cut hore pre textúru, matný finish, ofina mierne dopredu",
+      "styling_product": { "type": "matte_clay", "how_to_apply": "Hrášok hliny do suchých vlasov, prstami dopredu a nahor." },
+      "instructions_for_barber": [
+        "Hore nechať ~40 mm, texturovať point cutom",
+        "Boky 6 mm (#2), nízky taper nad uchom",
+        "Zátylok prirodzene zúžený, nie rovná hrana"
+      ],
+      "beard": null,
+      "why": "Okrúhla tvár: objem hore tvár opticky predĺži, kratšie boky zúžia šírku v lícach."
+    },
+    "card_style": {
+      "palette": [
+        { "name": "Olivová", "hex": "#6B7445", "where_to_wear": "top_near_face" },
+        { "name": "Tmavomodrá", "hex": "#1F2A44", "where_to_wear": "any" },
+        { "name": "Ťavia", "hex": "#C19A6B", "where_to_wear": "outerwear" },
+        { "name": "Krémová", "hex": "#F2E8D5", "where_to_wear": "top_near_face" },
+        { "name": "Tehlová", "hex": "#9C4A3A", "where_to_wear": "accent" },
+        { "name": "Antracit", "hex": "#3A3A3C", "where_to_wear": "bottoms" }
+      ],
+      "palette_why": "Stredný kontrast a teplý podtón – zemité tóny ladia s pleťou, čierna a ostrá biela by kontrast prebili.",
+      "key_cuts": [
+        { "item": "Chino nohavice", "fit": "slim-straight, bez zúženia pri členku", "shopping_tip": "Nohavica má vyvážiť ramená – skús, či sa nelepí na lýtko.", "why": "Široké ramená + užší pás: rovnejšia nohavica vyvažuje hornú časť." },
+        { "item": "Oxford košeľa", "fit": "regular v ramenách, mierne zúžená v páse", "shopping_tip": "Šev ramena presne na kosti ramena.", "why": "Bez vypchávok, ramená sú prirodzene široké." },
+        { "item": "Tričko s okrúhlym výstrihom", "fit": "regular, rukáv končí v polovici bicepsu", "shopping_tip": "Z hrubšej bavlny (180 g/m² a viac).", "why": "Čistá línia bez zbytočného objemu hore." }
+      ],
+      "avoid": [
+        { "what": "Saká s vypchatými ramenami", "why": "Ešte viac rozšíria hornú časť." },
+        { "what": "Skinny džínsy", "why": "Zvýraznia nepomer horná/dolná časť tela." }
+      ]
+    },
+    "card_grooming": {
+      "routine": [
+        { "step": 1, "when": "morning_and_evening", "product_type": "jemný gélový čistiaci prípravok", "why": "Odstráni maz bez vysušenia." },
+        { "step": 2, "when": "morning", "product_type": "ľahký hydratačný krém s SPF 30", "why": "Hydratácia + ochrana pred UV, ktoré urýchľuje starnutie pleti." },
+        { "step": 3, "when": "evening", "product_type": "hydratačný krém bez parfumu", "why": "Regenerácia cez noc." }
+      ],
+      "targeted_tip": { "area": "eyebrows", "tip": "Len zastrihnúť dlhé chĺpky a vytrhať medzi obočím; tvar nemeniť.", "why": "Čistejší pohľad bez upraveného vzhľadu." }
+    },
+    "card_why": {
+      "summary": "Tvoja tvár je skôr okrúhla a postava má širšie ramená a užší pás. Odporúčania pridávajú výšku hore a čisté línie, ktoré proporcie vyvažujú, nie zakrývajú.",
+      "proportion_points": [
+        { "observation": "Šírka tváre v lícach ≈ dĺžka tváre", "implication": "Objem hore, kratšie boky" },
+        { "observation": "Ramená výrazne širšie ako pás", "implication": "Bez vypchávok, rovnejšie nohavice" }
+      ],
+      "uncertainties": ["Podtón pleti – fotka bola pri umelom svetle."]
+    }
+  }
+}

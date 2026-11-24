@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "status": "photo_issue",
+  "photo_issues": [
+    {
+      "photo": "full_body",
+      "problem": "cropped",
+      "fix_instruction": "Postava je odrezaná pod pásom – odfoť sa celý, od hlavy po päty."
+    }
+  ],
+  "blueprint": null
+}
