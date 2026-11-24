@@ -8,11 +8,13 @@ export default defineConfig({
   test: {
     projects: [
       {
+        extends: true,
         plugins: [react()],
         resolve: { alias },
         test: { name: "node", environment: "node", include: ["**/*.test.ts"] },
       },
       {
+        extends: true,
         plugins: [react()],
         resolve: { alias },
         test: {
