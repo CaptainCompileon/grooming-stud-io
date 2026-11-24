@@ -258,6 +258,21 @@ describe("analyze outcome", () => {
     expect(screen.queryByRole("button", { name: sk.common.backToForm })).not.toBeInTheDocument();
   });
 
+  it("a 502 refusal suggests different photos and 'Upraviť fotky' returns to the filled form", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(502, { error: "analysis_failed", reason: "refusal" }));
+    const { container } = await submitWith(fetchMock);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(sk.errors.refusal);
+    expect(plausible).toHaveBeenCalledWith("blueprint_error", { props: { reason: "refusal" } });
+    expect(screen.queryByRole("button", { name: sk.common.retry })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: sk.common.backToForm }));
+    expect(container.querySelectorAll("img")).toHaveLength(3);
+    expect(screen.getByLabelText(sk.inputs.height.label)).toHaveValue("182");
+    expect(screen.getByRole("button", { name: sk.form.submit })).toBeEnabled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("an ok response renders the blueprint and tracks blueprint_rendered once", async () => {
     await submitWith(vi.fn(async () => jsonResponse(200, okFixture)));
     expect(await screen.findByTestId("blueprint")).toBeInTheDocument();

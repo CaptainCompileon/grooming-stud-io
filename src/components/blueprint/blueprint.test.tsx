@@ -290,10 +290,13 @@ describe("ErrorView", () => {
     },
   );
 
-  it("invalid_request: offers to edit the photos (BACK_TO_FORM) instead of retrying", () => {
+  it.each([
+    ["invalid_request", sk.errors.invalidPhotos],
+    ["refusal", sk.errors.refusal],
+  ] as const)("%s: offers to edit the photos (BACK_TO_FORM) instead of retrying", (kind, message) => {
     const dispatch = vi.fn();
-    render(<ErrorView kind="invalid_request" dispatch={dispatch} />);
-    expect(screen.getByRole("alert")).toHaveTextContent(sk.errors.invalidPhotos);
+    render(<ErrorView kind={kind} dispatch={dispatch} />);
+    expect(screen.getByRole("alert")).toHaveTextContent(message);
     expect(screen.queryByRole("button", { name: sk.common.retry })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: sk.common.backToForm }));

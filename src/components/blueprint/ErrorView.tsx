@@ -4,6 +4,7 @@ import { sk } from "@/i18n/sk";
 
 const MESSAGES: Record<ErrorKind, string> = {
   invalid_request: sk.errors.invalidPhotos,
+  refusal: sk.errors.refusal,
   analysis_failed: sk.errors.analysisFailed,
   network: sk.errors.network,
 };
@@ -14,10 +15,11 @@ type Props = {
 };
 
 export function ErrorView({ kind, dispatch }: Props) {
-  // A rejected payload (400/413) would fail the same way again: send the user
-  // back to the filled form to change photos instead of resending it.
+  // A rejected payload (400/413) or refused photos would fail the same way
+  // again: send the user back to the filled form to change photos instead of
+  // resending them.
   const primary =
-    kind === "invalid_request"
+    kind === "invalid_request" || kind === "refusal"
       ? { label: sk.common.backToForm, action: { type: "BACK_TO_FORM" } as const }
       : { label: sk.common.retry, action: { type: "RETRY" } as const };
 

@@ -127,6 +127,8 @@ export const sk = {
   errors: {
     title: "Niečo sa nepodarilo",
     invalidPhotos: "Fotky sa nepodarilo spracovať. Nahraj fotky znova, prosím.",
+    refusal:
+      "Z týchto fotiek sme Blueprint nevedeli pripraviť. Skús iné fotky – pri dennom svetle, bez okuliarov a podľa tipov pri každej fotke.",
     analysisFailed: "Analýza sa nepodarila. Skús znova.",
     network: "Spojenie zlyhalo. Skontroluj internet a skús znova.",
   },

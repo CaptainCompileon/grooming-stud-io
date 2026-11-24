@@ -16,10 +16,12 @@ type Inputs = Draft["inputs"];
 
 /**
  * Why a request failed: `invalid_request` = the server rejected the payload
- * (400/413, the photos need changing), `analysis_failed` = the server or model
- * failed, `network` = no usable response (offline, timeout, dropped body).
+ * (400/413, the photos need changing), `refusal` = the model declined these
+ * photos (502 refusal, different photos are needed), `analysis_failed` = the
+ * server or model failed, `network` = no usable response (offline, timeout,
+ * dropped body).
  */
-export type ErrorKind = "invalid_request" | "analysis_failed" | "network";
+export type ErrorKind = "invalid_request" | "refusal" | "analysis_failed" | "network";
 
 export type FlowState =
   | { step: "consent" }

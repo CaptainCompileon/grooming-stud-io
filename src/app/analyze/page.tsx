@@ -45,7 +45,7 @@ async function postAnalyze(body: string): Promise<AnalyzeOutcome> {
   }
 
   if (res.status === 400 || res.status === 413) return { ok: false, reason: "invalid_request" };
-  if (!res.ok) return { ok: false, reason: "analysis_failed" };
+  if (!res.ok) return { ok: false, reason: await serverFailureKind(res) };
 
   try {
     const data: unknown = await res.json();
@@ -55,6 +55,21 @@ async function postAnalyze(body: string): Promise<AnalyzeOutcome> {
     // SyntaxError = malformed body; anything else = connection dropped / timed out mid-body.
     return { ok: false, reason: err instanceof SyntaxError ? "analysis_failed" : "network" };
   }
+}
+
+// 5xx bodies are {error: "analysis_failed", reason}. A refusal means these photos
+// will not work, so it gets its own kind; every other reason (model_error,
+// invalid_output, server_error) or a non-JSON body is worth a retry.
+async function serverFailureKind(res: Response): Promise<ErrorKind> {
+  try {
+    const data: unknown = await res.json();
+    if (typeof data === "object" && data !== null && (data as { reason?: unknown }).reason === "refusal") {
+      return "refusal";
+    }
+  } catch {
+    // non-JSON error page from a proxy or the platform
+  }
+  return "analysis_failed";
 }
 
 function isBlueprintResponse(value: unknown): value is BlueprintResponse {
