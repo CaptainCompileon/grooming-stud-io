@@ -45,22 +45,17 @@ export function BarberCard({ card, lowConfidenceNote }: Props) {
     const node = exportRef.current;
     if (!node || saveStatus === "saving") return;
     setSaveStatus("saving");
+    let outcome: "saved" | "cancelled";
     try {
       // Rendered entirely on the client; the image is never uploaded.
       const dataUrl = await toPng(node, { pixelRatio: 2, backgroundColor: "#ffffff" });
-      const file = dataUrlToFile(dataUrl, IMAGE_FILE_NAME);
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: b.title });
-      } else {
-        downloadDataUrl(dataUrl, IMAGE_FILE_NAME);
-      }
-    } catch (err) {
-      // Closing the share sheet is a cancel, not a failure.
-      setSaveStatus(err instanceof DOMException && err.name === "AbortError" ? "idle" : "error");
+      outcome = await shareOrDownload(dataUrl, b.title);
+    } catch {
+      setSaveStatus("error");
       return;
     }
     setSaveStatus("idle");
-    track("cheatsheet_save_image");
+    if (outcome === "saved") track("cheatsheet_save_image");
   }
 
   const lengths = [
@@ -197,6 +192,23 @@ function Detail({ label, value }: { label: string; value: string }) {
       <dd className="font-medium">{value}</dd>
     </div>
   );
+}
+
+async function shareOrDownload(dataUrl: string, title: string): Promise<"saved" | "cancelled"> {
+  const file = dataUrlToFile(dataUrl, IMAGE_FILE_NAME);
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title });
+      return "saved";
+    } catch (err) {
+      // Closing the share sheet is a cancel, not a failure.
+      if (err instanceof DOMException && err.name === "AbortError") return "cancelled";
+      // Any other rejection (iOS: NotAllowedError once the tap's user activation
+      // expired while toPng ran) falls through to a plain download.
+    }
+  }
+  downloadDataUrl(dataUrl, IMAGE_FILE_NAME);
+  return "saved";
 }
 
 function dataUrlToFile(dataUrl: string, name: string): File {

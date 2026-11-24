@@ -222,6 +222,33 @@ describe("BarberCard actions", () => {
     click.mockRestore();
   });
 
+  it("falls back to a download when the share sheet rejects with NotAllowedError (iOS)", async () => {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const share = vi.fn(async () => Promise.reject(new DOMException("no gesture", "NotAllowedError")));
+    setNavigator("canShare", vi.fn(() => true));
+    setNavigator("share", share);
+    render(<BlueprintView blueprint={okBlueprint()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: sk.cards.barber.saveImage }));
+
+    await waitFor(() => expect(eventCalls("cheatsheet_save_image")).toHaveLength(1));
+    expect(share).toHaveBeenCalledTimes(1);
+    expect(click).toHaveBeenCalledTimes(1);
+    const anchor = click.mock.contexts[0] as HTMLAnchorElement;
+    expect(anchor.download).toBe("grooming-studio-barber.png");
+    expect(anchor.href).toMatch(/^data:image\/png;base64,/);
+    expect(screen.queryByText(sk.cards.barber.saveError)).not.toBeInTheDocument();
+    click.mockRestore();
+  });
+
+  it("shows the save error and does not track when rendering the PNG fails", async () => {
+    vi.mocked(toPng).mockRejectedValueOnce(new Error("canvas tainted"));
+    render(<BlueprintView blueprint={okBlueprint()} />);
+    fireEvent.click(screen.getByRole("button", { name: sk.cards.barber.saveImage }));
+    expect(await screen.findByText(sk.cards.barber.saveError)).toBeInTheDocument();
+    expect(eventCalls("cheatsheet_save_image")).toHaveLength(0);
+  });
+
   it("does not track or show an error when the user cancels the share sheet", async () => {
     setNavigator("canShare", vi.fn(() => true));
     setNavigator("share", vi.fn(async () => Promise.reject(new DOMException("cancel", "AbortError"))));
