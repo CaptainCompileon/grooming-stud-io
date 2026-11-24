@@ -1,5 +1,5 @@
-import type { AnalyzeRequest } from "../src/lib/analyze/request";
-import type { Blueprint, BlueprintResponse } from "../src/lib/blueprint/types";
+import { type AnalyzeRequest, type ParseResult, parseAnalyzeRequest } from "../src/lib/analyze/request";
+import type { Blueprint, BlueprintResponse, PhotoKey } from "../src/lib/blueprint/types";
 
 export interface EvalCase {
   case_id: string;
@@ -43,6 +43,30 @@ export interface EvalRun {
   started_at: string;
   model: string;
   cases: EvalCaseResult[];
+}
+
+// case_id becomes a file name in the out directory: no separators, dots or spaces.
+const CASE_ID = /^[\w-]+$/;
+
+/** Checks a loaded cases file; returns a message for the first problem, or null. */
+export function checkCaseIds(cases: unknown): string | null {
+  if (!Array.isArray(cases)) return "the cases file must contain a JSON array of cases";
+  const seen = new Map<string, number>();
+  for (const [i, c] of cases.entries()) {
+    const id = (c as { case_id?: unknown } | null)?.case_id;
+    if (typeof id !== "string" || !CASE_ID.test(id)) {
+      return `case ${i + 1}: case_id must match ${CASE_ID} (letters, digits, _ and -), got ${JSON.stringify(id) ?? "nothing"}`;
+    }
+    const first = seen.get(id);
+    if (first !== undefined) return `duplicate case_id "${id}" (cases ${first} and ${i + 1})`;
+    seen.set(id, i + 1);
+  }
+  return null;
+}
+
+/** Builds the request exactly as /api/analyze would accept it, so eval never runs inputs the app rejects. */
+export function buildRequest(inputs: unknown, photos: Record<PhotoKey, string>): ParseResult {
+  return parseAnalyzeRequest({ photos, inputs, measurements: null, locale: "sk" });
 }
 
 function features(b: Blueprint): Set<string> {
@@ -116,7 +140,7 @@ const cell = (s: string) => s.replace(/\|/g, "\\|").replace(/\s+/g, " ");
 export function renderReport(run: EvalRun): string {
   const cases = run.cases;
   const okCount = cases.filter((c) => c.ok).length;
-  const validPct = cases.length ? Math.round((okCount / cases.length) * 100) : 0;
+  const okPct = cases.length ? Math.round((okCount / cases.length) * 100) : 0;
   const violationCount = cases.reduce((n, c) => n + c.violations.length, 0);
   const lat = cases.map((c) => c.latencyMs).sort((a, b) => a - b);
   const mean = lat.length ? Math.round(lat.reduce((a, b) => a + b, 0) / lat.length) : 0;
@@ -128,7 +152,7 @@ export function renderReport(run: EvalRun): string {
   out.push("## Summary", "");
   out.push(`- Cases: ${cases.length}`);
   out.push(`- OK: ${okCount}`);
-  out.push(`- Valid JSON: ${validPct} %`);
+  out.push(`- OK rate: ${okPct} %`);
   out.push(`- Guardrail violations: ${violationCount}`);
   out.push(`- Latency mean / p95: ${mean} ms / ${p95} ms`);
   out.push(`- Tokens input: ${sum((c) => c.usage.input)}`);

@@ -14,7 +14,7 @@ JSON array, see `cases.example.json`. Each case:
 
 | field | meaning |
 |---|---|
-| `case_id` | unique, non-identifying id |
+| `case_id` | unique, non-identifying id; letters, digits, `_` and `-` only |
 | `description` | non-identifying note |
 | `photos` | `front`, `profile`, `full_body` file names relative to `--photos` |
 | `inputs` | `height_cm` (140-220), `hair_type`, `preferred_style` |
@@ -41,5 +41,5 @@ Photos are resized like on the client (EXIF rotation applied, max 1024 px, JPEG 
 
 ## Output
 
-- `eval/reports/YYYY-MM-DD-runN.md`: summary (valid JSON %, violations, latency mean/p95, tokens), per-case table with observation matches, generic-pair warnings (Jaccard similarity of barber cut + mm + palette + key cuts >= 0.8 for different inputs), violations.
-- Exit code 1 if any case fails schema or guardrails.
+- `eval/reports/YYYY-MM-DD-runN.md`: summary (OK rate % = cases that passed schema + guardrails, violations, latency mean/p95, tokens), per-case table with observation matches, generic-pair warnings (Jaccard similarity of barber cut + mm + palette + key cuts >= 0.8 for different inputs), violations.
+- Exit code 1 if any case fails schema or guardrails; exit code 2 for missing arguments or an invalid cases file (bad or duplicate `case_id`).

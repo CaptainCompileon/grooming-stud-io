@@ -4,8 +4,9 @@ import { parseArgs } from "node:util";
 import sharp from "sharp";
 import { analyzePhotos } from "../src/lib/analyze/analyze";
 import { createAnthropicModel, type ModelOutput, type VisionModel } from "../src/lib/analyze/model-client";
-import type { AnalyzeRequest } from "../src/lib/analyze/request";
 import {
+  buildRequest,
+  checkCaseIds,
   compareObservations,
   renderReport,
   type EvalCase,
@@ -20,7 +21,8 @@ const USAGE = `Usage: npm run eval -- --photos <dir> --cases <file.json> [--out 
   --out     directory for raw JSON outputs (default eval/out, git-ignored)
   --help    show this help
 
-Writes eval/reports/YYYY-MM-DD-runN.md. Exit code 1 if any case fails schema/guardrails.
+Writes eval/reports/YYYY-MM-DD-runN.md. Exit code 1 if any case fails schema/guardrails,
+2 for missing arguments or an invalid cases file (case_id must be unique, /^[\\w-]+$/).
 Credentials come from the SDK environment (ANTHROPIC_API_KEY).`;
 
 const DEADLINE_MS = 180_000;
@@ -60,17 +62,17 @@ async function runCase(c: EvalCase, photosDir: string, outDir: string, inner: Vi
   const base = { case_id: c.case_id, attempts: 1, violations: [] as string[], observations: [] };
   const usage = () => ({ input: state.input, output: state.output, cacheRead: state.cacheRead });
   try {
-    const req: AnalyzeRequest = {
-      photos: {
-        front: await prepare(path.join(photosDir, c.photos.front)),
-        profile: await prepare(path.join(photosDir, c.photos.profile)),
-        full_body: await prepare(path.join(photosDir, c.photos.full_body)),
-      },
-      inputs: c.inputs,
-      measurements: null,
-      locale: "sk",
+    const photos = {
+      front: await prepare(path.join(photosDir, c.photos.front)),
+      profile: await prepare(path.join(photosDir, c.photos.profile)),
+      full_body: await prepare(path.join(photosDir, c.photos.full_body)),
     };
-    const result = await analyzePhotos(req, model, { deadlineMs: DEADLINE_MS });
+    // Same validation as /api/analyze: a case the app would reject is an input error, not a model result.
+    const req = buildRequest(c.inputs, photos);
+    if (!req.ok) {
+      return { ...base, ok: false, failure: "input_error", errorName: req.error, latencyMs: 0, usage: usage() };
+    }
+    const result = await analyzePhotos(req.value, model, { deadlineMs: DEADLINE_MS });
     await writeFile(path.join(outDir, `${c.case_id}.json`), JSON.stringify(result, null, 2));
     if (result.ok) {
       return {
@@ -126,7 +128,13 @@ async function main(): Promise<number> {
     return 2;
   }
 
-  const cases = JSON.parse(await readFile(values.cases, "utf8")) as EvalCase[];
+  const loaded: unknown = JSON.parse(await readFile(values.cases, "utf8"));
+  const casesError = checkCaseIds(loaded);
+  if (casesError) {
+    console.error(`Invalid cases file ${values.cases}: ${casesError}`);
+    return 2;
+  }
+  const cases = loaded as EvalCase[];
   const outDir = values.out ?? "eval/out";
   await mkdir(outDir, { recursive: true });
 

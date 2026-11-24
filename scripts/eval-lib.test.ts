@@ -3,6 +3,8 @@ import okFixture from "../src/lib/blueprint/__fixtures__/blueprint-ok.sk.json";
 import type { Blueprint, BlueprintResponse } from "../src/lib/blueprint/types";
 import {
   blueprintSimilarity,
+  buildRequest,
+  checkCaseIds,
   compareObservations,
   findGenericPairs,
   renderReport,
@@ -115,6 +117,55 @@ describe("renderReport", () => {
     expect(md).toContain("c1 ~ c2");
     expect(md).toContain("GUARDRAIL: banned phrase");
     expect(md).toContain("Tokens input: 300"); // total input tokens
+    expect(md).toContain("- OK rate: 67 %");
+    expect(md).not.toContain("Valid JSON");
     expect(md).not.toContain("/9j/");
+  });
+});
+
+describe("checkCaseIds", () => {
+  it("accepts unique ids of word characters and dashes", () => {
+    expect(checkCaseIds([{ case_id: "example-01" }, { case_id: "case_2" }])).toBeNull();
+  });
+
+  it.each([["../escape"], ["a b"], [""], ["x.json"], [5], [undefined]])("rejects case_id %j", (id) => {
+    const error = checkCaseIds([{ case_id: "ok-1" }, { case_id: id }]);
+    expect(error).toMatch(/case 2/);
+    expect(error).toMatch(/case_id/);
+  });
+
+  it("rejects duplicate ids and names them", () => {
+    expect(checkCaseIds([{ case_id: "a" }, { case_id: "b" }, { case_id: "a" }])).toMatch(/duplicate case_id "a"/);
+  });
+
+  it("rejects a file that is not an array", () => {
+    expect(checkCaseIds({ case_id: "a" })).toMatch(/array/);
+  });
+});
+
+describe("buildRequest", () => {
+  const photo = "/9j/" + "QUJD".repeat(10);
+  const photos = { front: photo, profile: photo, full_body: photo };
+
+  it("returns the same request the API would accept", () => {
+    const result = buildRequest({ height_cm: 180, hair_type: "wavy", preferred_style: "casual" }, photos);
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        photos,
+        inputs: { height_cm: 180, hair_type: "wavy", preferred_style: "casual" },
+        measurements: null,
+        locale: "sk",
+      },
+    });
+  });
+
+  it("returns the API's error code for inputs the API would reject", () => {
+    const inputs = { height_cm: 250, hair_type: "wavy", preferred_style: "casual" } as const;
+    expect(buildRequest(inputs, photos)).toEqual({ ok: false, error: "invalid_height" });
+    expect(buildRequest({ ...inputs, height_cm: 180 }, { ...photos, front: "iVBOR" })).toEqual({
+      ok: false,
+      error: "photo_not_jpeg:front",
+    });
   });
 });
